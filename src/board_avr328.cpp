@@ -11,10 +11,12 @@
 // Rotary Encoder pins
 #define encoderPinA 2
 #define encoderPinB 3
-#define encoderSwitch 4
+// #define encoderSwitch 4
 
 // TIMER1 Interrupt Service Routine (ISR)
-bool looping = true; // Store value used for output interrupt
+uint16_t loopStartTime = 0; // Store the start time of the delay for output restart
+bool ISR_loop = 1;          // Flag that delays output restart
+bool triggerOutput = true;  // Store value used for output interrupt
 
 // TIMER1 Compare
 bool resetPrescaler = false; // Flag used to reset timer prescaler
@@ -24,7 +26,6 @@ uint16_t new_OCR1A;          // New value of OCR1A for timer control
 // Rotary Encoder
 uint8_t lastEncoded = 0;
 uint16_t encoderValue = 0;
-bool switchPosition; //
 
 // Variables for analog port
 uint8_t analogPort; // Store analog port to be being used
@@ -46,7 +47,9 @@ bool updateDisplayName = true;
 // This function updates the rotary encoder's current position and current pattern
 void updateEncoder()
 {
-  looping = false;  // Stop the loop
+  triggerOutput = false; // Stop the loop
+  ISR_loop = false;      // Ready restart count flag
+
   currentIndex = 0; // Reset the array index to 0
 
   // Read the current state of the encoder's two digital pins
@@ -80,15 +83,31 @@ void updateEncoder()
   }
   lastEncoded = encoded;         // Update lastEncoded to match encoded
   EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
-  looping = true;                // Restart the loop
+
+  ISR_loop = true; // Restart the loop
 }
 
+// Holds various instructions needed each time the pattern is changed
 void patternCheck()
 {
-  if (updateDisplayName == true)
+  // Checks flag to see if display needs to be updated (has to be better way to do this)
+  if (updateDisplayName == true) // Called if new pattern needs to be displayed.
   {
     updateDisplayName = false;
-    updateDisplay();
+    updateDisplay(); // Calls function that updates display to new pattern
+  }
+
+  // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
+  if (ISR_loop && loopStartTime == 0) // If ISR_loop has just changed from false to true
+  {
+    loopStartTime = millis(); // Store the start time of the delay
+  }
+  // If restartOutputTime has passed since the start time and the delay has not been reset
+  uint16_t restartOutputTime = 1000;
+  if (millis() - loopStartTime >= restartOutputTime && loopStartTime != 0)
+  {
+    triggerOutput = true; // Set output to true
+    loopStartTime = 0;    // Reset the start time of the delay
   }
 }
 
@@ -133,7 +152,8 @@ void initBoard()
   DDRD &= ~(1 << DDD2); // Set D2 (pin 2) as input
   PORTD |= (1 << PD2);  // Enable pull-up on D2 (pin 2)
 
-  // pinMode(encoderSwitch, INPUT_PULLUP); // Rotary encoder switch
+  // pinMode(encoderSwitch, INPUT_PULLUP);                                      // Rotary encoder switch
+  // attachInterrupt(digitalPinToInterrupt(encoderSwitch), encoderButton, LOW); // Interrupts for rotary encoder push button (not sure how well this will work)
 
   attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE); // Interrupts for rotary encoder
   attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE); // Interrupts for rotary encoder
@@ -241,8 +261,8 @@ ISR(TIMER1_COMPA_vect)
 {
   TCNT1 = 0; // Reset the timer
 
-  // If looping flag is true, stream indexed data and control output speed
-  if (looping == true)
+  // If triggerOutput flag is true, stream indexed data and control output speed
+  if (triggerOutput == true)
   {
     PORTB = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]); // Stream indexed data
 

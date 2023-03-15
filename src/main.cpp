@@ -48,22 +48,20 @@ void setup()
 #endif
 
   initBoard(); // Initialize Board
-  // startTime = millis(); // Wait for initialization
 }
 
 void loop()
 {
-  // Delay for 1 second too initBoard
-  if (millis() - startTime < 1000)
+  // Delay for initBoard
+  if (millis() - startTime < 250)
   {
     return; // Delay is not over, return without executing the rest of the loop
   }
+  
   // Most of the work is done by timers/interrupts.
   // Calling adc() is for the pot RPM input control.
-
-  // Works well
 #if defined(AVR328)
-  adc();
-  patternCheck();
+  adc();  // RPM control loop. Pot is read in ISR(ACD_vect)
+  patternCheck(); // Various instuction needed each timer a new pattern is selected. 
 #endif
 }

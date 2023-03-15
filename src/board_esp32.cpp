@@ -12,7 +12,7 @@ uint8_t rpmPot = 36;  // Pin numbers are defined in board files.
 uint8_t crankPin = 12; // Pin for crank signal output
 uint8_t camPin = 13;   // Pin for camshaft signal output
 
-bool looping = true; // Define the analog input pin
+bool triggerOutput = true; // Define the analog input pin
 
 uint32_t timerCount;    // Store value used to compare to interval
 uint8_t currentPattern; // store the currently selected patter.
@@ -35,7 +35,7 @@ void initBoard()
 // Pattern output really needs to be removed from the loop.
 void esp32_loop()
 {
-    if (looping == true)
+    if (triggerOutput == true)
     {
         int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
         digitalWrite(crankPin, pinValue & 0x01);

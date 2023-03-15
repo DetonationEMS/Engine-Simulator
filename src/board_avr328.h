@@ -19,7 +19,7 @@ extern uint16_t desiredRPM; // Define a variable to store the desired RPM value
 extern uint16_t tempRPM;    // Store variable tempRPM
 
 // Variables for output interrupt
-extern bool looping; // Store value used for output interrupt
+extern bool triggerOutput; // Store value used for output interrupt
 
 // Variables for timer control
 extern bool resetPrescaler;   // Flag used to reset timer prescaler
