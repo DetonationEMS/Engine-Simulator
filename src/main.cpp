@@ -28,7 +28,7 @@ Notes: Nano328 is the only properly working board at the moment.
 #include "main.h"
 
 // Doesn't work properly. Need to learn to use esp32 timers
-#if defined(ESP32DEV)
+#if defined(ESP32)
 #include "board_esp32.h"
 #endif
 

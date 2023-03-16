@@ -12,31 +12,31 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/nanoatmega328new/firmware.elf",
-            "projectEnvName": "nanoatmega328new",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/sparkfun_esp32s2_thing_plus/firmware.elf",
+            "projectEnvName": "sparkfun_esp32s2_thing_plus",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
-                "task": "Pre-Debug (nanoatmega328new)"
+                "task": "Pre-Debug (sparkfun_esp32s2_thing_plus)"
             }
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/nanoatmega328new/firmware.elf",
-            "projectEnvName": "nanoatmega328new",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/sparkfun_esp32s2_thing_plus/firmware.elf",
+            "projectEnvName": "sparkfun_esp32s2_thing_plus",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/nanoatmega328new/firmware.elf",
-            "projectEnvName": "nanoatmega328new",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/sparkfun_esp32s2_thing_plus/firmware.elf",
+            "projectEnvName": "sparkfun_esp32s2_thing_plus",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"
         }
