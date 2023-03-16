@@ -1,3 +1,10 @@
+/*
+ *  ESP32 isn't functional yet. Simply "ported" over from the nano.
+ *  Testing done on ESP32-S2. ( https://www.amazon.com/dp/B0B7WY3MWG?psc=1&ref=ppx_yo2ov_dt_b_product_details )
+ *  It's small and uses USB-C
+ *  and a very old "dev kit"
+ */
+
 #if defined(ESP32)
 #include <Arduino.h>
 #include <stdint.h>
@@ -8,17 +15,16 @@
 #include "board_esp32.h"
 #include "trigger_arrays.h"
 #include "structures.h"
-#include "display.h"
+// #include "display.h"
 
 // Rotary Encoder pins
-#define encoderPinA 2
-#define encoderPinB 3
-// #define encoderSwitch 4
+#define encoderPinA GPIO_NUM_18
+#define encoderPinB GPIO_NUM_19
 
 // Output Pins
-#define rpmPot A0
-#define crankPin 8
-#define camPin 9
+#define rpmPot GPIO_NUM_4
+#define crankPin GPIO_NUM_2
+#define camPin GPIO_NUM_15
 
 // TIMER1 Interrupt Service Routine (ISR)
 uint16_t loopStartTime = 0; // Store the start time of the delay for output restart
@@ -45,8 +51,8 @@ uint16_t tempRPM = 0;    // Store variable tempRPM
 
 // Pattern selection
 extern wheels Wheels[];
-uint8_t currentPattern;    // Store Currently selected pattern. Stored in EEPROM.
-uint16_t currentIndex = 0; // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
+uint8_t currentPattern = 11; // Store Currently selected pattern. Stored in EEPROM.
+uint16_t currentIndex = 0;   // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
 
 // Flag for updating the display
 bool updateDisplayName = true;
@@ -71,7 +77,7 @@ void IRAM_ATTR timerISR()
         }
     }
 
-    // If resetPrescaler flag is true, reset prescaler based on prescalerBits value
+    // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
     if (resetPrescaler)
     {
         timerAlarmDisable(timer); // Disable the timer alarm
@@ -86,85 +92,25 @@ void IRAM_ATTR timerISR()
     portEXIT_CRITICAL_ISR(&timerMux);        // Exit the critical section
 }
 
-void setupRpmTimer()
-{
-    timer = timerBegin(0, 80, true);              // Use Timer 0 with 80 MHz clock, and count up
-    timerAttachInterrupt(timer, &timerISR, true); // Attach the ISR function
-    timerAlarmWrite(timer, 1, true);              // Set the timer alarm value to 1
-    timerAlarmEnable(timer);                      // Enable the timer alarm
-}
-
-// This function updates the rotary encoder's current position and current pattern
 void updateEncoder()
 {
-    triggerOutput = false; // Stop the loop
-    ISR_loop = false;      // Ready restart count flag
-
-    currentIndex = 0; // Reset the array index to 0
-
-    // Read the current state of the encoder's two digital pins
-    uint8_t MSB = digitalRead(encoderPinA);
-    uint8_t LSB = digitalRead(encoderPinB);
-
-    // Combine the two bits into a single byte using bitwise operators
-    uint8_t encoded = (MSB << 1) | LSB;
-
-    // Update currentPattern based on the change in encoder value
-    if (encoded != lastEncoded)
-    {
-        if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
-        {
-            encoderValue++;
-            if (encoderValue % 2 == 0)
-            {
-                currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
-                updateDisplayName = true;
-            }
-        }
-        else if ((lastEncoded == 0b00 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b00))
-        {
-            encoderValue--;
-            if (encoderValue % 2 == 0)
-            {
-                currentPattern = static_cast<WheelType>((currentPattern - 1 + (MAX_WHEELS)) % (MAX_WHEELS));
-                updateDisplayName = true;
-            }
-        }
-    }
-    lastEncoded = encoded;         // Update lastEncoded to match encoded
-    EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
-
-    ISR_loop = true; // Restart the loop
+    //  Only missing for debug!!
 }
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
 {
-    // Checks flag to see if display needs to be updated (has to be better way to do this)
-    if (updateDisplayName == true) // Called if new pattern needs to be displayed.
-    {
-        updateDisplayName = false;
-        updateDisplay(); // Calls function that updates display to new pattern
-    }
-
-    // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
-    if (ISR_loop && loopStartTime == 0) // If ISR_loop has just changed from false to true
-    {
-        loopStartTime = millis(); // Store the start time of the delay
-    }
-    // If restartOutputTime has passed since the start time and the delay has not been reset
-    uint16_t restartOutputTime = 1000;
-    if (millis() - loopStartTime >= restartOutputTime && loopStartTime != 0)
-    {
-        triggerOutput = true; // Set output to true
-        loopStartTime = 0;    // Reset the start time of the delay
-    }
+        //  Only missing for debug!!
 }
 
 // Define a function to initialize board hardware
 void initBoard()
 {
-    reset_new_OCR1A(desiredRPM); // Reset the timer pre-scaler
+    timer = timerBegin(0, 80, true);              // Use Timer 0 with 80 MHz clock, and count up
+    timerAttachInterrupt(timer, &timerISR, true); // Attach the ISR function
+    timerAlarmWrite(timer, 1, true);              // Set the timer alarm value to 1
+    timerAlarmEnable(timer);                      // Enable the timer alarm
+    reset_new_OCR1A(desiredRPM);                  // Reset the timer pre-scaler
 
     // Configure pin modes for inputs and outputs
     // Set pins 8,9,10 as outputs
@@ -178,7 +124,8 @@ void initBoard()
     attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE); // Interrupts for rotary encoder
     attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE); // Interrupts for rotary encoder
 
-    EEPROM.get(0, currentPattern); // Get previously stored pattern
+    // COMMENTED OUT FOR DEBUG
+    // EEPROM.get(0, currentPattern); // Get previously stored pattern
 
     // Check if the loaded value is within the range.
     if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
@@ -260,42 +207,16 @@ void reset_new_OCR1A(uint32_t new_rpm)
     resetPrescaler = true;                                    // Set resetPrescaler flag to true
 }
 
-void adc_task(void *pvParameters)
-{
-    while (1)
-    {
-        // Read the ADC value for port 0
-        adc0 = analogRead(0);
-        // Set the flag to indicate the ADC value for port 0 is ready
-        adc0_Ready = true;
-        // Wait for 10 milliseconds before reading the ADC value again
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
 void adc()
 {
     // Check if adc0_Ready flag is true
-    if (adc0_Ready)
-    {
-        adc0_Ready = false; // Reset adc0_Ready flag to false
-        // Left shift the value of adc0 by tmpRPM_Shift bits and assign it to tempRPM
-        tempRPM = adc0 << tmpRPM_Shift;
-        // Check if tempRPM is greater than maxRPM
-        // If it is, assign the value of maxRPM to tempRPM, else keep it as is
-        tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
-        desiredRPM = tempRPM;     // Assign the value of tempRPM to the desiredRPM variable
-        reset_new_OCR1A(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
-    }
+    adc0 = analogRead(rpmPot);
+    // Left shift the value of adc0 by tmpRPM_Shift bits and assign it to tempRPM
+    tempRPM = adc0 << tmpRPM_Shift;
+    // Check if tempRPM is greater than maxRPM
+    // If it is, assign the value of maxRPM to tempRPM, else keep it as is
+    tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
+    desiredRPM = tempRPM;     // Assign the value of tempRPM to the desiredRPM variable
+    reset_new_OCR1A(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
 }
-
-// This is an Interrupt Service Routine (ISR) for Analog to Digital Converter (ADC) Interrupt vector
-void IRAM_ATTR adc_isr()
-{
-    // Read the ADC value for port 0
-    adc0 = analogRead(0);
-    // Set the flag to indicate the ADC value for port 0 is ready
-    adc0_Ready = true;
-}
-
 #endif

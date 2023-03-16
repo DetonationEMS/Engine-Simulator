@@ -7,7 +7,7 @@
   Simple Engine Crank/Cam Trigger Simulator
 
   This project is a personal learning experience and isn't for end-user use.
-  It will constain bugs, efficiancy issues and is generally incomplete.
+  It will contain bugs, efficiency issues and is generally incomplete.
   If you are looking for an engine simulator I recommend the Speeduino fork of Ardustim.
        https://github.com/speeduino/Ardu-Stim
 ********************************************************************************************/
@@ -16,10 +16,7 @@
 Notes: Nano328 is the only properly working board at the moment.
 
  To-do:
- Serial Debug
- Add pattern selection
  Figure out a way to scale pattern outputs
- Add a Screen for board selection. (0.96 OLED)
  Get more MCU's working. Would like esp32 or equivalently powerful MCUs.
     Less power MCU's like Attiny, Nano168 aren't priority and may be later abandoned.
 ********************************************************************************************/
@@ -27,7 +24,7 @@ Notes: Nano328 is the only properly working board at the moment.
 #include <Arduino.h>
 #include "main.h"
 
-// Doesn't work properly. Need to learn to use esp32 timers
+// Doesn't work properly yet.
 #if defined(ESP32)
 #include "board_esp32.h"
 #endif
@@ -62,6 +59,11 @@ void loop()
   // Calling adc() is for the pot RPM input control.
 #if defined(AVR328)
   adc();  // RPM control loop. Pot is read in ISR(ACD_vect)
-  patternCheck(); // Various instuction needed each timer a new pattern is selected. 
+  patternCheck(); // Various instuction needed each time a new pattern is selected. 
+#endif
+
+#if defined(ESP32)
+  adc();  // RPM control loop. 
+  patternCheck(); // Various instuction needed each time a new pattern is selected. 
 #endif
 }
