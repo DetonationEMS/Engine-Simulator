@@ -1,16 +1,16 @@
-#if defined(ESP32)
 #ifndef BOARD_ESP32_H
 #define BOARD_ESP32_H
-#include <Arduino.h>
 
-void initBoard();
-void adc();
-void patternCheck();  
+#include <Arduino.h>
 
 // Define constants for RPM and Array Selection control
 #define tmpRPM_Shift 4 // x16, 0-16384 RPM via pot
 #define maxRPM 16384   // MAX RPM via pot control
 #define minWheels 1
+
+void initBoard();
+void adc();
+void patternCheck();
 
 // Variables for analog port
 extern uint8_t analogPort; // Store analog port to be being used

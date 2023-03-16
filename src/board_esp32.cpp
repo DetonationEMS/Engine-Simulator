@@ -2,7 +2,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <EEPROM.h>
-#include <HardwareTimer.h>
+#include <driver/timer.h>
+#include <esp_timer.h>
 
 #include "board_esp32.h"
 #include "trigger_arrays.h"
@@ -51,15 +52,13 @@ uint16_t currentIndex = 0; // Store currentPattern's indexed value. This value m
 bool updateDisplayName = true;
 
 // Configure the hardware timer for RPM control
-HardwareTimer rpmTimer(0); // Use Timer 0 for RPM control
-rpmTimer.setMode(TIMER_CH1, TIMER_OUTPUT_COMPARE);
-rpmTimer.setPrescaleFactor(1);                 // Set the pre-scaler to 1 (no pre-scaling)
-rpmTimer.setOverflow(1);                       // Set the timer overflow value to 1
-rpmTimer.attachInterrupt(TIMER_CH1, timerISR); // Enable the timer interrupt
+hw_timer_t *timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 // Define the timer interrupt service routine
 void IRAM_ATTR timerISR()
 {
+    portENTER_CRITICAL_ISR(&timerMux); // Ensure that no other interrupts execute during this routine
     if (triggerOutput == true)
     {
         int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
@@ -72,19 +71,27 @@ void IRAM_ATTR timerISR()
         }
     }
 
-    // This needs to be changed for esp32
     // If resetPrescaler flag is true, reset prescaler based on prescalerBits value
     if (resetPrescaler)
     {
-        timerAlarmDisable(timer);
-        timerDetachInterrupt(timer, 0);
+        timerAlarmDisable(timer); // Disable the timer alarm
         timerWrite(timer, 0);
-        timerSetPrescaleFactor(timer, prescalerBits);
+        timerSetDivider(timer, prescalerBits);
         timerAttachInterrupt(timer, 0, timerISR);
         timerAlarmEnable(timer);
         resetPrescaler = false; // Reset resetPrescaler flag
     }
+
     timerAlarmWrite(timer, new_OCR1A, true); // Set OCR1A to new_OCR1A for RPM changes
+    portEXIT_CRITICAL_ISR(&timerMux);        // Exit the critical section
+}
+
+void setupRpmTimer()
+{
+    timer = timerBegin(0, 80, true);              // Use Timer 0 with 80 MHz clock, and count up
+    timerAttachInterrupt(timer, &timerISR, true); // Attach the ISR function
+    timerAlarmWrite(timer, 1, true);              // Set the timer alarm value to 1
+    timerAlarmEnable(timer);                      // Enable the timer alarm
 }
 
 // This function updates the rotary encoder's current position and current pattern
