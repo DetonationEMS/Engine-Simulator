@@ -66,7 +66,7 @@
 #ifndef TRIGGER_ARRAYS_H
 #define TRIGGER_ARRAYS_H
 
-#include <Arduino.h>
+//#include <Arduino.h>
 
 
  typedef enum { 

@@ -1,12 +1,13 @@
 // DOES NOT WORK. Threw together to progress the idea in the future.
 #if defined(PICO)
+
 #include <cstdint>
-#include "pico/stdlib.h"
-#include "pico/multicore.h"
-#include "hardware/irq.h"
-#include "hardware/adc.h"
-#include "hardware/pwm.h"
-#include "hardware/gpio.h"
+#include <pico/stdlib.h>
+#include <pico/multicore.h>
+#include <hardware/irq.h>
+#include <hardware/adc.h>
+#include <hardware/pwm.h>
+#include <hardware/gpio.h>
 
 #include "trigger_arrays.h"
 #include "structures.h"
@@ -48,23 +49,92 @@ uint16_t currentIndex = 0; // Store currentPattern's indexed value. This value m
 // Flag for updating the display
 bool updateDisplayName = true;
 
+
+// Define a function to initialize board hardware
+void initBoard()
+{
+  // Disable global interrupts
+  __disable_irq();
+
+  // Reset Timer 1
+  timer_hw->tim[1].ctrl = 0;
+  timer_hw->tim[1].intr = 0xFFFFFFFF;
+  timer_hw->tim[1].alrarm = 0;
+  timer_hw->tim[1].alrmr = 0;
+
+  // Set up Timer 1 in CTC mode
+  timer_hw->tim[1].ctrl = TIMER_CTRL_EN;
+  timer_hw->tim[1].ctrl |= TIMER_CTRL_PRESCALE_DIV1; // set the prescaler to 1
+  timer_hw->tim[1].ctrl |= TIMER_CTRL_CLR;
+
+  // Set the timer period (OCR1A)
+  uint32_t desiredRPM = 1000;                          // example value
+  uint32_t timer_period = (125000UL / desiredRPM) - 1; // calculate the timer period
+  timer_hw->tim[1].alarm[0] = timer_period;
+
+  // Enable the overflow interrupt
+  timer_hw->intr[1] = TIMER_INTR_OF;
+
+  // Enable global interrupts
+  __enable_irq();
+
+  // Start the timer
+  timer_hw->tim[1].ctrl |= TIMER_CTRL_EN;
+
+  reset_new_OCR1A(desiredRPM); // Reset the timer pre-scaler
+
+
+// Configure pin modes for inputs and outputs
+// Set pins 8,9,10 as outputs
+gpio_init(0); // Set GP0 (pin 8) as output
+gpio_set_dir(0, GPIO_OUT);
+gpio_init(1); // Set GP1 (pin 9) as output
+gpio_set_dir(1, GPIO_OUT);
+gpio_init(2); // Set GP2 (pin 10) as output (Knock signal on LS1 pattern, not implemented. Needs to be enabled to prevent errors when using "gm_ls1_crank_and_cam")
+gpio_set_dir(2, GPIO_OUT);
+
+// Set pins 2 and 3 as inputs with pull-ups and interrupts.
+gpio_init(3); // Set GP3 (pin 3) as input
+gpio_set_dir(3, GPIO_IN);
+gpio_pull_up(3);
+gpio_init(2); // Set GP2 (pin 2) as input
+gpio_set_dir(2, GPIO_IN);
+gpio_pull_up(2);
+
+
+  // pinMode(encoderSwitch, INPUT_PULLUP);                                      // Rotary encoder switch
+  // attachInterrupt(digitalPinToInterrupt(encoderSwitch), encoderButton, LOW); // Interrupts for rotary encoder push button (not sure how well this will work)
+
+  attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE); // Interrupts for rotary encoder
+  attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE); // Interrupts for rotary encoder
+
+  EEPROM.get(0, currentPattern); // Get previously stored pattern
+
+  // Check if the loaded value is within the range.
+  if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
+  {
+    currentPattern = 11; // If not use a default value of 11
+  }
+}
+
+
 // This function updates the rotary encoder's current position and current pattern
 void updateEncoder()
 {
-    triggerOutput = false; // Stop the loop
-    ISR_loop = false;      // Ready restart count flag
+  triggerOutput = false; // Stop the loop
+  ISR_loop = false;      // Ready restart count flag
 
-    currentIndex = 0; // Reset the array index to 0
+  currentIndex = 0; // Reset the array index to 0
 
-    // Read the current state of the encoder's two digital pins
-    uint8_t MSB = gpio_get(encoderPinA);
-    uint8_t LSB = gpio_get(encoderPinB);
+  // Read the current state of the encoder's two digital pins
+  uint8_t MSB = gpio_get(encoderPinA);
+  uint8_t LSB = gpio_get(encoderPinB);
 
-    // Combine the two bits into a single byte using bitwise operators
-    uint8_t encoded = (MSB << 1) | LSB;
+  // Combine the two bits into a single byte using bitwise operators
+  uint8_t encoded = (MSB << 1) | LSB;
 
-    // Update currentPattern based on the change in encoder value
-    if (encoded != lastEncoded)
+  // Update currentPattern based on the change in encoder value
+  if (encoded != lastEncoded)
   {
     if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
     {
@@ -112,63 +182,6 @@ void patternCheck()
   {
     triggerOutput = true; // Set output to true
     loopStartTime = 0;    // Reset the start time of the delay
-  }
-}
-
-
-// Define a function to initialize board hardware
-void initBoard()
-{
-  cli(); // Disable global interrupts
-  // Configure timer hardware for RPM control
-  TCCR1A = 0;              // Set Timer/Counter 1 Control Register A to 0 (Normal port operation, CTC mode disabled)
-  TCCR1B = 0;              // Set Timer/Counter 1 Control Register B to 0 (Normal port operation, CTC mode disabled)
-  TCNT1 = 0;               // Reset Timer/Counter 1 value to 0
-  OCR1A = 1;               // Set Timer/Counter 1 Output Compare Register A to 1
-  TCCR1B |= (1 << WGM12);  // Set the Timer1 mode to CTC (clear timer on compare match)
-  TCCR1B |= (1 << CS10);   // Set the Timer1 pre-scaler to 1 (no pre-scaling)
-  TIMSK1 |= (1 << OCIE1A); // Enable Timer1 overflow interrupt
-
-  // Configure analog input for RPM control
-  ADMUX &= B11011111;  // Set the reference voltage to AVCC (5V) for the ADC (clearing bit 5)
-  ADMUX |= B01000000;  // Set the reference voltage to AVCC (5V) for the ADC (setting bits 6 and 7)
-  ADMUX &= B11110000;  // Clear MUX3..0 in ADMUX in preparation for setting analog input
-  ADCSRA |= B10000000; // Set ADEN in ADCSRA to enable the ADC.
-  ADCSRA |= B00100000; // Set ADATE in ADCSRA to enable auto-triggering.
-  ADCSRB &= B11111000; // Clear ADTS2..0 in ADCSRB to set trigger mode to free running.
-  ADCSRA |= B00000111; // Set the ADC pre-scaler to 128 (sampling frequency of 125 kHz)
-  ADCSRA |= B00001000; // Set ADIE in ADCSRA to enable the ADC interrupt.
-
-  sei(); // Enable global interrupts
-
-  ADCSRA |= B01000000; // Start the ADC conversion
-
-  reset_new_OCR1A(desiredRPM); // Reset the timer pre-scaler
-
-  // Configure pin modes for inputs and outputs
-  // Set pins 8,9,10 as outputs
-  DDRB |= (1 << DDB0); // Set PB0 (pin 8) as output
-  DDRB |= (1 << DDB1); // Set PB1 (pin 9) as output
-  DDRB |= (1 << DDB2); // Set PB2 (pin 10) as output (Knock signal on LS1 pattern, not implemented. Needs to be enabled to prevent errors when using "gm_ls1_crank_and_cam")
-
-  // Set pins 2 and 3 as inputs with pull-ups and interrupts.
-  DDRD &= ~(1 << DDD3); // Set D3 (pin 3) as input
-  PORTD |= (1 << PD3);  // Enable pull-up on D3 (pin 3)
-  DDRD &= ~(1 << DDD2); // Set D2 (pin 2) as input
-  PORTD |= (1 << PD2);  // Enable pull-up on D2 (pin 2)
-
-  // pinMode(encoderSwitch, INPUT_PULLUP);                                      // Rotary encoder switch
-  // attachInterrupt(digitalPinToInterrupt(encoderSwitch), encoderButton, LOW); // Interrupts for rotary encoder push button (not sure how well this will work)
-
-  attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE); // Interrupts for rotary encoder
-  attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE); // Interrupts for rotary encoder
-
-  EEPROM.get(0, currentPattern); // Get previously stored pattern
-
-  // Check if the loaded value is within the range.
-  if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
-  {
-    currentPattern = 11; // If not use a default value of 11
   }
 }
 
@@ -297,4 +310,5 @@ ISR(ADC_vect)
     return;
   }
 }
+
 #endif

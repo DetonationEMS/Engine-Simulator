@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 include(pico_sdk_import.cmake)
 
-project(ENGINE-SIMULATOR)
+project(project_name)
 
 pico_sdk_init()
 
