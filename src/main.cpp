@@ -36,6 +36,13 @@ Notes: Nano328 is the only properly working board at the moment.
 #include <avr/pgmspace.h>
 #endif
 
+// Works well
+#if defined(PICO)
+#include "board_pico.h"
+#include "display.h"
+#include <avr/pgmspace.h>
+#endif
+
 uint16_t startTime;
 
 void setup()
@@ -57,13 +64,8 @@ void loop()
   
   // Most of the work is done by timers/interrupts.
   // Calling adc() is for the pot RPM input control.
-#if defined(AVR328)
+
   adc();  // RPM control loop. Pot is read in ISR(ACD_vect)
   patternCheck(); // Various instuction needed each time a new pattern is selected. 
-#endif
 
-#if defined(ESP32)
-  adc();  // RPM control loop. 
-  patternCheck(); // Various instuction needed each time a new pattern is selected. 
-#endif
 }
