@@ -18,8 +18,8 @@
 // #include "display.h"
 
 // Rotary Encoder pins
-#define encoderPinA GPIO_NUM_18
-#define encoderPinB GPIO_NUM_19
+#define encoderPinA GPIO_NUM_16
+#define encoderPinB GPIO_NUM_17
 
 // Output Pins
 #define rpmPot GPIO_NUM_4
