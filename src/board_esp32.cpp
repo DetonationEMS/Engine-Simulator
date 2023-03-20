@@ -1,15 +1,14 @@
 /*
- *  ESP32 isn't functional yet. Simply "ported" over from the nano.
+ *  ESP32 doesn't work properly.
  *  Testing done on ESP32-S2. ( https://www.amazon.com/dp/B0B7WY3MWG?psc=1&ref=ppx_yo2ov_dt_b_product_details )
- *  It's small and uses USB-C
- *  and a very old "dev kit"
  *
  * Although OCR1A doesn't exist on the ESP32 platform the variable name is retained
  * for my ease of understanding while coding. Variable names will be changed appropriately as I 
  * better understand the ESP32 onboard timers.
  *
- *
- *
+ * I am learning the ACD input of the esp32 might not be as friendly as I would like for this project.
+ * I need to do more research and possible switch to a different MCU.
+ * 
  */
 #include <Arduino.h>
 #include <driver/adc.h>
@@ -104,7 +103,7 @@ void initBoard()
     // adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11); // ADC1_CHANNEL_0 is GPIO36, 11dB attenuation
 
     // Configure timer
-    timer = timerBegin(0, 80, true); // 80 prescaler for 1MHz
+    timer = timerBegin(0, 16, true); // 16 prescaler for 5MHz
     timerAttachInterrupt(timer, &onTimer, true);
     timerAlarmWrite(timer, 1000, true); // Set initial alarm value
     timerAlarmEnable(timer);
