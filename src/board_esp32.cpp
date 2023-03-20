@@ -3,14 +3,18 @@
  *  Testing done on ESP32-S2. ( https://www.amazon.com/dp/B0B7WY3MWG?psc=1&ref=ppx_yo2ov_dt_b_product_details )
  *  It's small and uses USB-C
  *  and a very old "dev kit"
+ *
+ * Although OCR1A doesn't exist on the ESP32 platform the variable name is retained
+ * for my ease of understanding while coding. Variable names will be changed appropriately as I 
+ * better understand the ESP32 onboard timers.
+ *
+ *
+ *
  */
-
-#if defined(ESP32)
 #include <Arduino.h>
-#include <stdint.h>
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
 #include <EEPROM.h>
-#include <driver/timer.h>
-#include <esp_timer.h>
 
 #include "board_esp32.h"
 #include "trigger_arrays.h"
@@ -18,13 +22,13 @@
 // #include "display.h"
 
 // Rotary Encoder pins
-#define encoderPinA GPIO_NUM_16
-#define encoderPinB GPIO_NUM_17
+#define encoderPinA GPIO_NUM_36
+#define encoderPinB GPIO_NUM_38
 
 // Output Pins
-#define rpmPot GPIO_NUM_4
-#define crankPin GPIO_NUM_2
-#define camPin GPIO_NUM_15
+#define rpmPot GPIO_NUM_12
+#define crankPin GPIO_NUM_3
+#define camPin GPIO_NUM_5
 
 // TIMER1 Interrupt Service Routine (ISR)
 uint16_t loopStartTime = 0; // Store the start time of the delay for output restart
@@ -43,7 +47,6 @@ uint16_t encoderValue = 0;
 // Variables for analog port
 uint8_t analogPort; // Store analog port to be being used
 uint16_t adc0;      // Store value of RPM potentiometer
-bool adc0_Ready;    // Flag used to manipulate the port
 
 // Variables for desired RPM
 uint16_t desiredRPM = 0; // Define a variable to store the desired RPM value
@@ -62,34 +65,19 @@ hw_timer_t *timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 // Define the timer interrupt service routine
-void IRAM_ATTR timerISR()
+void IRAM_ATTR onTimer()
 {
-    portENTER_CRITICAL_ISR(&timerMux); // Ensure that no other interrupts execute during this routine
-    if (triggerOutput == true)
-    {
-        int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
-        digitalWrite(crankPin, pinValue & 0x01);
-        digitalWrite(camPin, (pinValue >> 1) & 0x01);
+    portENTER_CRITICAL_ISR(&timerMux);
 
-        if (++currentIndex == Wheels[currentPattern].patternLength)
-        {                     // walk the pattern
-            currentIndex = 0; // when the end of the pattern is reached go back to the start.
-        }
+    int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
+    digitalWrite(crankPin, pinValue & 0x01);
+    digitalWrite(camPin, (pinValue >> 1) & 0x01);
+
+    if (++currentIndex == Wheels[currentPattern].patternLength)
+    {                     // walk the pattern
+        currentIndex = 0; // when the end of the pattern is reached go back to the start.
     }
-
-    // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
-    if (resetPrescaler)
-    {
-        timerAlarmDisable(timer); // Disable the timer alarm
-        timerWrite(timer, 0);
-        timerSetDivider(timer, prescalerBits);
-        timerAttachInterrupt(timer, 0, timerISR);
-        timerAlarmEnable(timer);
-        resetPrescaler = false; // Reset resetPrescaler flag
-    }
-
-    timerAlarmWrite(timer, new_OCR1A, true); // Set OCR1A to new_OCR1A for RPM changes
-    portEXIT_CRITICAL_ISR(&timerMux);        // Exit the critical section
+    portEXIT_CRITICAL_ISR(&timerMux);
 }
 
 void updateEncoder()
@@ -100,20 +88,28 @@ void updateEncoder()
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
 {
-        //  Only missing for debug!!
+    //  Only missing for debug!!
 }
 
 // Define a function to initialize board hardware
 void initBoard()
 {
-    timer = timerBegin(0, 80, true);              // Use Timer 0 with 80 MHz clock, and count up
-    timerAttachInterrupt(timer, &timerISR, true); // Attach the ISR function
-    timerAlarmWrite(timer, 1, true);              // Set the timer alarm value to 1
-    timerAlarmEnable(timer);                      // Enable the timer alarm
-    reset_new_OCR1A(desiredRPM);                  // Reset the timer pre-scaler
+    // initialize EEPROM
+    // EEPROM.begin(EEPROM_SIZE);
+
+    // Add other setup code here (e.g., pinMode, EEPROM.get, etc.)
+
+    // Configure ADC
+    // adc1_config_width(ADC_WIDTH_BIT_12);                        // 12-bit ADC resolution
+    // adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11); // ADC1_CHANNEL_0 is GPIO36, 11dB attenuation
+
+    // Configure timer
+    timer = timerBegin(0, 80, true); // 80 prescaler for 1MHz
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, 1000, true); // Set initial alarm value
+    timerAlarmEnable(timer);
 
     // Configure pin modes for inputs and outputs
-    // Set pins 8,9,10 as outputs
     pinMode(crankPin, OUTPUT); // set crankPin as an output
     pinMode(camPin, OUTPUT);   // set camPin as an output
 
@@ -132,6 +128,31 @@ void initBoard()
     {
         currentPattern = 11; // If not use a default value of 11
     }
+}
+
+void adc()
+{
+    // adc0 = adc1_get_raw(ADC1_CHANNEL_0);
+    adc0 = analogRead(rpmPot);
+
+    tempRPM = adc0 <<= tmpRPM_Shift;
+    // Check if tempRPM is greater than maxRPM
+    // If it is, assign the value of maxRPM to tempRPM, else keep it as is
+    tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
+    desiredRPM = tempRPM;     // Assign the value of tempRPM to the desiredRPM variable
+    reset_new_OCR1A(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
+
+    // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
+    if (resetPrescaler)
+    {
+        // timerAlarmDisable(timer); // Disable the timer alarm
+        timerSetDivider(timer, prescalerBits);
+        // timer = timerBegin(0, 80, true); // 80 prescaler for 1MHz
+        // timerAttachInterrupt(timer, &onTimer, true);
+        // timerAlarmEnable(timer);
+        resetPrescaler = false; // Reset resetPrescaler flag
+    }
+    timerAlarmWrite(timer, new_OCR1A, true); // Set timerAlarWrite to new_OCR1A for RPM changes
 }
 
 // This function gets bitshift value based on pre-scaler enum
@@ -206,17 +227,3 @@ void reset_new_OCR1A(uint32_t new_rpm)
     prescalerBits = tmp_prescaler_bits;                       // Update prescalerBits with value stored in tmp_prescaler_bits
     resetPrescaler = true;                                    // Set resetPrescaler flag to true
 }
-
-void adc()
-{
-    // Check if adc0_Ready flag is true
-    adc0 = analogRead(rpmPot);
-    // Left shift the value of adc0 by tmpRPM_Shift bits and assign it to tempRPM
-    tempRPM = adc0 << tmpRPM_Shift;
-    // Check if tempRPM is greater than maxRPM
-    // If it is, assign the value of maxRPM to tempRPM, else keep it as is
-    tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
-    desiredRPM = tempRPM;     // Assign the value of tempRPM to the desiredRPM variable
-    reset_new_OCR1A(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
-}
-#endif
