@@ -7,6 +7,7 @@
 #include "wheel_defs.h"
 #include "structures.h"
 #include "display.h"
+#include "wheel_gen.h"
 
 // Rotary Encoder pins
 #define encoderPinA 2
@@ -40,9 +41,31 @@ uint16_t tempRPM = 0;    // Store variable tempRPM
 extern wheels Wheels[];
 uint8_t currentPattern;    // Store Currently selected pattern. Stored in EEPROM.
 uint16_t currentIndex = 0; // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
-
+extern uint16_t patternLength;
 // Flag for updating the display
 bool updateDisplayName = true;
+
+// This function will be used to generate trigger arrays when selected. (Very incomplete) saving large amounts of space
+void generate_array(unsigned char *arr)
+{
+
+  if (currentPattern == 12)
+  {
+    generate_fourty_minus_one(arr);
+  }
+  if (currentPattern == 13)
+  {
+    generate_dizzy_four_trigger_return(arr);
+  }
+  if (currentPattern == 14)
+  {
+    generate_oddfire_vr(arr);
+  }
+  if (currentPattern == 15)
+  {
+    generate_optispark_lt1(arr);
+  }
+}
 
 // This function updates the rotary encoder's current position and current pattern
 void updateEncoder()
@@ -81,6 +104,10 @@ void updateEncoder()
       }
     }
   }
+  // Generate the array based on a selection
+  unsigned char generated_array[Wheels[currentPattern].patternLength]; // Set maximum array size. (720x2=1440) I cannot imagine a larger array.
+  generate_array(generated_array);
+
   lastEncoded = encoded;         // Update lastEncoded to match encoded
   EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
 
