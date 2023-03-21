@@ -8,6 +8,14 @@
 #include <stdint.h>
 #include "wheel_defs.h"
 
+// Access the specific pattern stored in Wheels using currentPattern as an index
+// const char *selectedPatternName = Wheels[currentPattern].patternName;
+// const unsigned char *selectedTriggerPattern = Wheels[currentPattern].selectedPattern;
+// const float rpmScaler = Wheels[currentPattern].rpm_scaler;
+// const uint16_t patternLength = Wheels[currentPattern].patternLength;
+// const uint16_t wheelDegrees = Wheels[currentPattern].wheel_degrees;
+// Use the selected trigger pattern, RPM scaler, pattern length, and wheel degrees as needed
+
 typedef struct _wheels wheels;
 struct _wheels
 {
