@@ -213,10 +213,10 @@ extern const unsigned char six_minus_one_with_cam[] PROGMEM;
 extern const unsigned char twelve_minus_one_with_cam[] PROGMEM;
 
 // To be Generated
-extern unsigned char fourty_minus_one[] PROGMEM;
-extern unsigned char dizzy_four_trigger_return[] PROGMEM;
-extern unsigned char oddfire_vr[] PROGMEM;
-extern unsigned char optispark_lt1[] PROGMEM;
+extern unsigned char fourty_minus_one[];
+extern unsigned char dizzy_four_trigger_return[];
+extern unsigned char oddfire_vr[];
+extern unsigned char optispark_lt1[];
 
 extern const unsigned char twelve_minus_three[] PROGMEM;
 extern const unsigned char thirty_six_minus_two_two_two[] PROGMEM;
@@ -251,15 +251,15 @@ extern const unsigned char daihatsu_3cyl[] PROGMEM;
 extern const unsigned char miata_9905[] PROGMEM;
 extern const unsigned char twelve_with_cam[] PROGMEM;
 extern const unsigned char twenty_four_with_cam[] PROGMEM;
-extern const unsigned char subaru_six_seven_name[] PROGMEM;
+extern const unsigned char subaru_six_seven[] PROGMEM;
 extern const unsigned char gm_seven_x[] PROGMEM;
 extern const unsigned char four_twenty_a[] PROGMEM;
 extern const unsigned char ford_st170[] PROGMEM;
 extern const unsigned char mitsubishi_3A92[] PROGMEM;
-extern const unsigned char Toyota_4AGE_CAS[] PROGMEM;
-extern const unsigned char Toyota_4AGZE[] PROGMEM;
-extern const unsigned char Suzuki_DRZ400[] PROGMEM;
-extern const unsigned char Jeep_2000[] PROGMEM;
+extern const unsigned char toyota_4AGE_CAS[] PROGMEM;
+extern const unsigned char toyota_4AGZE[] PROGMEM;
+extern const unsigned char suzuki_DRZ400[] PROGMEM;
+extern const unsigned char jeep_2000[] PROGMEM;
 extern const unsigned char rover_k_mode1_thirtysix_minus_one_one[] PROGMEM;
 extern const unsigned char rover_k_mode2_thirtysix_minus_one_one_one_one[] PROGMEM;
 extern const unsigned char rover_k_mode3_thirtysix_minus_one_one_one_one[] PROGMEM;
