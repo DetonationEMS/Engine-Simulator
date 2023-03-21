@@ -4,7 +4,7 @@
 #include <EEPROM.h>
 
 #include "board_avr328.h"
-#include "trigger_arrays.h"
+#include "wheel_defs.h"
 #include "structures.h"
 #include "display.h"
 

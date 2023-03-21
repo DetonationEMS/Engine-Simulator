@@ -1,6 +1,6 @@
 #ifndef BOARD_ESP32_H
 #define BOARD_ESP32_H
-
+#if defined(ESP32)
 #include <Arduino.h>
 
 // Define constants for RPM and Array Selection control

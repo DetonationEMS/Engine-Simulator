@@ -10,13 +10,14 @@
  * I need to do more research and possible switch to a different MCU.
  * 
  */
+#if defined(ESP32)
 #include <Arduino.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 #include <EEPROM.h>
 
 #include "board_esp32.h"
-#include "trigger_arrays.h"
+#include "wheel_defs.h"
 #include "structures.h"
 // #include "display.h"
 
@@ -226,3 +227,4 @@ void reset_new_OCR1A(uint32_t new_rpm)
     prescalerBits = tmp_prescaler_bits;                       // Update prescalerBits with value stored in tmp_prescaler_bits
     resetPrescaler = true;                                    // Set resetPrescaler flag to true
 }
+#endif

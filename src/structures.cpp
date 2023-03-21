@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <stdint.h>
-#include "trigger_arrays.h"
+#include "wheel_defs.h"
 #include "structures.h"
 
 #if defined(AVR328)

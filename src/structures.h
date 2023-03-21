@@ -6,7 +6,7 @@
 #endif
 
 #include <stdint.h>
-#include "trigger_arrays.h"
+#include "wheel_defs.h"
 
 typedef struct _wheels wheels;
 struct _wheels

@@ -63,8 +63,8 @@
    * Number of edges in the edge array above, needed by the ISR 
    */
 
-#ifndef TRIGGER_ARRAYS_H
-#define TRIGGER_ARRAYS_H
+#ifndef WHEEL_DEFS_H
+#define WHEEL_DEFS_H
 
 #include <Arduino.h>
 
