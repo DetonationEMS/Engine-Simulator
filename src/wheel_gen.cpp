@@ -1,6 +1,7 @@
 
 #include <Arduino.h>
 #include "wheel_defs.h"
+#include "wheel_gen.h"
 
 /* Test code that will go into pattern selection functions  */
 void arraySelectionCodeWontBeHere()
@@ -85,27 +86,4 @@ void generate_optispark_lt1(unsigned char *arr)
         arr[50 + i * 30] = 2;
         arr[50 + i * 30 + 1] = 3;
     }
-}
-
-void setup()
-{
-    // Declare arrays and generate them using the functions
-    unsigned char fourty_minus_one[40];
-    generate_fourty_minus_one(fourty_minus_one);
-
-    unsigned char dizzy_four_trigger_return[9];
-    generate_dizzy_four_trigger_return(dizzy_four_trigger_return);
-
-    unsigned char oddfire_vr[24];
-    generate_oddfire_vr(oddfire_vr);
-
-    unsigned char optispark_lt1[360];
-    generate_optispark_lt1(optispark_lt1);
-
-    // Now you can use the generated arrays in your program
-}
-
-void loop()
-{
-    // Your main program logic
 }
