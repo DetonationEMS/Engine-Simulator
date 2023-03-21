@@ -200,7 +200,7 @@ unsigned char fourty_minus_one[80];
       0,0,0,0,0,0,0,0,0,0,0,0 
     };
 */
- unsigned char optispark_lt1[360];     
+ unsigned char optispark_lt1[720];     
 /*
   // GM LT1 360 and 8 wheel, see http://powerefi.com/files/opti-LT1-count.JPG 
   const unsigned char optispark_lt1[] PROGMEM = 

@@ -22,6 +22,7 @@ that can be filled out with various variables so new trigger wheels can be later
 ********************************************************************************************/
 
 #include <Arduino.h>
+#include <stdlib.h>
 #include "wheel_defs.h"
 #include "wheel_gen.h"
 #include "structures.h"
@@ -29,17 +30,21 @@ that can be filled out with various variables so new trigger wheels can be later
 extern wheels Wheels[];
 extern uint8_t currentPattern; // Currently selected pattern.
 
-
-
 // Wrong
 void generate_fourty_minus_one(unsigned char *arr)
 {
-    int i;
-    for (i = 0; i < 80; i++)
+    for (int i = 0; i < 7; i++)
     {
-        arr[i] = (i % 2 == 0) ? 0 : 1; // set every other tooth to 0 or 1
+        for (int j = 0; j < 10; j++)
+        {
+            arr[i * 10 + j] = (j % 2 == 0) ? 0 : 1;
+        }
     }
-    arr[80] = 0; // set the 80th tooth to 0
+    for (int j = 0; j < 9; j++)
+    {
+        arr[70 + j] = (j % 2 == 0) ? 0 : 1;
+    }
+    arr[79] = 0;
 }
 
 void generate_dizzy_four_trigger_return(unsigned char *arr)
