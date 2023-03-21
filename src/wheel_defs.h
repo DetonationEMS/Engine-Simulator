@@ -154,13 +154,10 @@ extern const unsigned char four_minus_one_with_cam[] PROGMEM;
 extern const unsigned char eight_minus_one[] PROGMEM;
 extern const unsigned char six_minus_one_with_cam[] PROGMEM;
 extern const unsigned char twelve_minus_one_with_cam[] PROGMEM;
-
-// To be Generated
-extern unsigned char fourty_minus_one[];
-extern unsigned char dizzy_four_trigger_return[];
-extern unsigned char oddfire_vr[];
-extern unsigned char optispark_lt1[];
-
+extern const unsigned char fourty_minus_one[] PROGMEM;
+extern const unsigned char dizzy_four_trigger_return[] PROGMEM;
+extern const unsigned char oddfire_vr[] PROGMEM;
+extern const unsigned char optispark_lt1[] PROGMEM;
 extern const unsigned char twelve_minus_three[] PROGMEM;
 extern const unsigned char thirty_six_minus_two_two_two[] PROGMEM;
 extern const unsigned char thirty_six_minus_two_two_two_h6[] PROGMEM;
