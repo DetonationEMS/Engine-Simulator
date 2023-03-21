@@ -29,53 +29,17 @@ that can be filled out with various variables so new trigger wheels can be later
 extern wheels Wheels[];
 extern uint8_t currentPattern; // Currently selected pattern.
 
-// This function will be used to generate trigger arrays when selected. (Very incomplete) saving large amounts of space
-void generate_array(unsigned char *arr, int &size)
-{
 
-    if (currentPattern == 12)
-    {
-        size = 80;  
-        generate_fourty_minus_one(arr);
-    }
-    if (currentPattern == 13)
-    {
-        size = 9;
-        generate_dizzy_four_trigger_return(arr);
-    }
-    if (currentPattern == 14)
-    {
-        size = 24;
-        generate_oddfire_vr(arr);
-    }
-    if (currentPattern == 15)
-    {
-        size = 720;
-        generate_optispark_lt1(arr);
-    }
-}
-
-// Test code that will go into pattern selection functions
-void generateSelect()
-{
-    // You can generate the array based on a selection parameter, e.g., from user input
-    unsigned char generated_array[1440]; // Set maximum array size. (720x2=1440) I cannot imagine a larger array.
-    int array_size;
-
-    generate_array(generated_array, array_size);
-    // Now you can use the generated array in your program
-}
-
-// These are NOT tested or verified
 
 // Wrong
 void generate_fourty_minus_one(unsigned char *arr)
 {
-    for (int i = 0; i < 39; i++)
+    int i;
+    for (i = 0; i < 80; i++)
     {
-        arr[i] = i % 2;
+        arr[i] = (i % 2 == 0) ? 0 : 1; // set every other tooth to 0 or 1
     }
-    arr[39] = 0;
+    arr[80] = 0; // set the 80th tooth to 0
 }
 
 void generate_dizzy_four_trigger_return(unsigned char *arr)

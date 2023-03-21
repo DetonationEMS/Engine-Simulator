@@ -35,6 +35,8 @@ void initBoard();
 void adc();
 void reset_new_OCR1A(uint32_t new_rpm);
 void patternCheck();
+// Generation
+void generate_array(unsigned char* arr);
 
 // Button not really needed
 // void button();
