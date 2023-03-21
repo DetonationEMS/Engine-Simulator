@@ -167,11 +167,8 @@
 
 
 // Pattern Generation Test Subjects.
-  unsigned char fourty_minus_one[40];
-  unsigned char dizzy_four_trigger_return[9];
-  unsigned char oddfire_vr[24];
-  unsigned char optispark_lt1[360];
 
+unsigned char fourty_minus_one[80];
  /*  
   // Ford V10 version of EDIS with 40 teeth instead of 36, 50% duty cycle during normal teeth.. 
  const unsigned char fourty_minus_one[] PROGMEM = 
@@ -184,21 +181,27 @@
      0,1,0,1,0,1,0,1,0,1,  // Teeth 26-30  
      0,1,0,1,0,1,0,1,0,1,  // Teeth 31-35  
      0,1,0,1,0,1,0,1,0,0   // Teeth 36-39 and MISSING 40th tooth  
-   };
-  
+   }; */
+
+  unsigned char dizzy_four_trigger_return[9];
+/*
   // 50deg off, 40 deg on dissy style signal 
   const unsigned char dizzy_four_trigger_return[] PROGMEM = 
     { // dizzy trigger return 
       0,0,0,0,0,1,1,1,1l  // Simple off/on signal, 50deg off, 40 deg on 
     };
-   
+*/
+  unsigned char oddfire_vr[24];
+/*
   // Oddfire V twin  135/225 split 
   const unsigned char oddfire_vr[] PROGMEM = 
     { // Oddfire VR 
       1,0,0,0,0,0,0,0,0,1,0,0, // Tooth 1 and 2 at 0 deg and 135 deg, then 225 off 
       0,0,0,0,0,0,0,0,0,0,0,0 
     };
-  
+*/
+ unsigned char optispark_lt1[360];     
+/*
   // GM LT1 360 and 8 wheel, see http://powerefi.com/files/opti-LT1-count.JPG 
   const unsigned char optispark_lt1[] PROGMEM = 
     {  // Optispark 360 outside teeth, 8 varying inside teeth 
