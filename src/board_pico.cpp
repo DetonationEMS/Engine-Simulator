@@ -49,6 +49,31 @@ uint16_t currentIndex = 0;   // Store currentPattern's indexed value. This value
 // Flag for updating the display
 bool updateDisplayName = true;
 
+void rotary_encoder_isr()
+{
+  // Read the current state of the encoder's two digital pins
+  uint32_t MSB = gpio_get(encoderPinA);
+  uint32_t LSB = gpio_get(encoderPinB);
+
+  // Combine the two bits into a single byte using bitwise operators
+  uint32_t encoded = (MSB << 1) | LSB;
+
+  // Update encoderValue based on the change in encoder value
+  static uint32_t lastEncoded = 0;
+  if (encoded != lastEncoded)
+  {
+    if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
+    {
+      encoderValue++;
+    }
+    else if ((lastEncoded == 0b00 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b00))
+    {
+      encoderValue--;
+    }
+    lastEncoded = encoded; // Update lastEncoded to match encoded
+  }
+}
+
 void updateEncoder()
 {
   triggerOutput = false; // Stop the loop
@@ -85,12 +110,11 @@ void updateEncoder()
       }
     }
   }
-  lastEncoded = encoded;         // Update lastEncoded to match encoded
-  //EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
+  lastEncoded = encoded; // Update lastEncoded to match encoded
+  // EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
 
   ISR_loop = true; // Restart the loop
 }
-
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
@@ -99,7 +123,7 @@ void patternCheck()
   if (updateDisplayName == true) // Called if new pattern needs to be displayed.
   {
     updateDisplayName = false;
-    //updateDisplay(); // Calls function that updates display to new pattern
+    // updateDisplay(); // Calls function that updates display to new pattern
   }
 
   // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
@@ -120,27 +144,6 @@ void initBoard()
 {
   adc_init();
   adc_select_input(rpmPot);
-  // Define a function to initialize board hardware
-  // Disable global interrupts
-  // Pico Timer Stuff goes here.
-
-  // calculate_delay_us(desiredRPM); // Reset the timer pre-scaler
-  //  reset_new_OCR1A(desiredRPM); // Reset the timer pre-scaler
-
-  // Configure pin modes for inputs and outputs
-  //  pinMode(rpmPot, INPUT); // set crankPin as an output
-  pinMode(crankPin, OUTPUT); // set crankPin as an output
-  pinMode(camPin, OUTPUT);   // set camPin as an output
-
-  // pinMode(rpmPot, INPUT); // set potentiometer as an input
-  pinMode(encoderPinA, INPUT_PULLUP);
-  pinMode(encoderPinB, INPUT_PULLUP);
-
-  // pinMode(encoderSwitch, INPUT_PULLUP);                                      // Rotary encoder switch
-  // attachInterrupt(digitalPinToInterrupt(encoderSwitch), encoderButton, LOW); // Interrupts for rotary encoder push button (not sure how well this will work)
-
-  attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE); // Interrupts for rotary encoder
-  attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE); // Interrupts for rotary encoder
 
   // COMMENTED OUT FOR DEBUG
   // EEPROM.get(0, currentPattern); // Get previously stored pattern
@@ -159,7 +162,7 @@ void initBoard()
 
 void output()
 {
-  while (true)
+  if (triggerOutput == true)
   {
     uint16_t pot_value = adc_read(); // this read working
     float new_rpm = 100 + ((16000 - 100) * (pot_value / 65535.0));
@@ -254,15 +257,14 @@ void adc()
 {
   // This isn't working properly.
 
-
-  //uint16_t adc0 = adc_read();
-  //adc0 = analogRead(rpmPot);
+  // uint16_t adc0 = adc_read();
+  // adc0 = analogRead(rpmPot);
 
   tempRPM = adc0 <<= tmpRPM_Shift;
   // Check if tempRPM is greater than maxRPM
   // If it is, assign the value of maxRPM to tempRPM, else keep it as is
   tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
-  desiredRPM = tempRPM;     // Assign the value of tempRPM to the desiredRPM variable
+  desiredRPM = tempRPM;        // Assign the value of tempRPM to the desiredRPM variable
   calculate_delay_us(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
 
   // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
