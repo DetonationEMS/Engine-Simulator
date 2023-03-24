@@ -12,6 +12,11 @@
 #include "board_avr328.h"
 #endif
 
+// Works well
+#if defined(PICO)
+#include "board_pico.h"
+#endif
+
 #if defined(USE_TINY4K)
 #include <Tiny4kOLED.h>
 #include <fonts.h>
