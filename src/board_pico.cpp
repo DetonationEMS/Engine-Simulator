@@ -1,14 +1,8 @@
 // DOES NOT WORK. Threw together to progress the idea in the future.
 #if defined(PICO)
-
+#include <Arduino.h>
 #include <cstdint>
-#include <hardware/pio_instructions.h>
-#include <hardware/pio.h>
-#include <hardware/interp.h>
-#include <pico/multicore.h>
-#include <hardware/irq.h>
 #include <hardware/adc.h>
-#include <hardware/pwm.h>
 #include <hardware/gpio.h>
 
 #include "board_avr328.h"
@@ -17,8 +11,8 @@
 #include "display.h"
 
 // Rotary Encoder pins
-#define encoderPinA 2
-#define encoderPinB 3
+#define encoderPinA 19
+#define encoderPinB 20
 
 // Output Pins
 #define rpmPot ADC0
@@ -57,13 +51,69 @@ bool updateDisplayName = true;
 
 void updateEncoder()
 {
-  //  Only missing for debug!!
+  triggerOutput = false; // Stop the loop
+  ISR_loop = false;      // Ready restart count flag
+
+  currentIndex = 0; // Reset the array index to 0
+
+  // Read the current state of the encoder's two digital pins
+  uint8_t MSB = digitalRead(encoderPinA);
+  uint8_t LSB = digitalRead(encoderPinB);
+
+  // Combine the two bits into a single byte using bitwise operators
+  uint8_t encoded = (MSB << 1) | LSB;
+
+  // Update currentPattern based on the change in encoder value
+  if (encoded != lastEncoded)
+  {
+    if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
+    {
+      encoderValue++;
+      if (encoderValue % 2 == 0)
+      {
+        currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
+        updateDisplayName = true;
+      }
+    }
+    else if ((lastEncoded == 0b00 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b00))
+    {
+      encoderValue--;
+      if (encoderValue % 2 == 0)
+      {
+        currentPattern = static_cast<WheelType>((currentPattern - 1 + (MAX_WHEELS)) % (MAX_WHEELS));
+        updateDisplayName = true;
+      }
+    }
+  }
+  lastEncoded = encoded;         // Update lastEncoded to match encoded
+  //EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
+
+  ISR_loop = true; // Restart the loop
 }
+
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
 {
-  //  Only missing for debug!!
+  // Checks flag to see if display needs to be updated (has to be better way to do this)
+  if (updateDisplayName == true) // Called if new pattern needs to be displayed.
+  {
+    updateDisplayName = false;
+    //updateDisplay(); // Calls function that updates display to new pattern
+  }
+
+  // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
+  if (ISR_loop && loopStartTime == 0) // If ISR_loop has just changed from false to true
+  {
+    loopStartTime = millis(); // Store the start time of the delay
+  }
+  // If restartOutputTime has passed since the start time and the delay has not been reset
+  uint16_t restartOutputTime = 1000;
+  if (millis() - loopStartTime >= restartOutputTime && loopStartTime != 0)
+  {
+    triggerOutput = true; // Set output to true
+    loopStartTime = 0;    // Reset the start time of the delay
+  }
 }
 
 void initBoard()
@@ -204,7 +254,7 @@ void adc()
 {
   // This isn't working properly.
 
-  
+
   //uint16_t adc0 = adc_read();
   //adc0 = analogRead(rpmPot);
 
