@@ -1,20 +1,13 @@
 #ifndef BOARD_PICO_H
 #define BOARD_PICO_H
-#if defined(PICO)
 /*
 Pico Notes(apply to me personally):
 May be able to use some tricks from the ESP32 attempt
 Pico notes in binder #3
 */
-
+#include <Arduino.h>
 #include <cstdint>
-#include <hardware/pio_instructions.h>
-#include <hardware/pio.h>
-#include <hardware/interp.h>
-#include <pico/multicore.h>
-#include <hardware/irq.h>
 #include <hardware/adc.h>
-#include <hardware/pwm.h>
 #include <hardware/gpio.h>
 
 void updateEncoder();
@@ -35,7 +28,5 @@ enum
     PRESCALE_256 = 4,
     PRESCALE_1024 = 5
 };
-
-#endif
 
 #endif
