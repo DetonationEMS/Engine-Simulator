@@ -21,7 +21,7 @@
 #define encoderPinB 3
 
 // Output Pins
-#define rpmPot 31
+#define rpmPot ADC0
 #define crankPin 8
 #define camPin 9
 
@@ -55,22 +55,21 @@ uint16_t currentIndex = 0;   // Store currentPattern's indexed value. This value
 // Flag for updating the display
 bool updateDisplayName = true;
 
-
 void updateEncoder()
 {
-    //  Only missing for debug!!
+  //  Only missing for debug!!
 }
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
 {
-    //  Only missing for debug!!
+  //  Only missing for debug!!
 }
 
 void initBoard()
 {
-     adc_init();
-    adc_select_input(rpmPot);
+  adc_init();
+  adc_select_input(rpmPot);
   // Define a function to initialize board hardware
   // Disable global interrupts
   // Pico Timer Stuff goes here.
@@ -78,10 +77,11 @@ void initBoard()
   reset_new_OCR1A(desiredRPM); // Reset the timer pre-scaler
 
   // Configure pin modes for inputs and outputs
+  //  pinMode(rpmPot, INPUT); // set crankPin as an output
   pinMode(crankPin, OUTPUT); // set crankPin as an output
   pinMode(camPin, OUTPUT);   // set camPin as an output
 
-  //pinMode(rpmPot, INPUT); // set potentiometer as an input
+  // pinMode(rpmPot, INPUT); // set potentiometer as an input
   pinMode(encoderPinA, INPUT_PULLUP);
   pinMode(encoderPinB, INPUT_PULLUP);
 
@@ -95,9 +95,9 @@ void initBoard()
   // EEPROM.get(0, currentPattern); // Get previously stored pattern
 
   // Check if the loaded value is within the range.
-  //if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
+  // if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
   //{
-    currentPattern = 11; // If not use a default value of 11
+  currentPattern = 11; // If not use a default value of 11
   //}
 }
 
@@ -126,7 +126,6 @@ void output()
     }
   }
 }
-
 
 void adc()
 {
