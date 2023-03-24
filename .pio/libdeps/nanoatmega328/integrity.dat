@@ -1,4 +1,4 @@
-datacute/Tiny4kOLED@^2.2.2
-paulstoffregen/TimerOne@^1.1
 arkhipenko/TaskScheduler@^3.7.0
+paulstoffregen/TimerOne@^1.1
+datacute/Tiny4kOLED@^2.2.2
 bblanchon/ArduinoJson@^6.20.0
