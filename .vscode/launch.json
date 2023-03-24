@@ -71,7 +71,7 @@
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
-                "task": "Pre-Debug (nanoatmega328)"
+                "task": "Pre-Debug"
             }
         },
         {

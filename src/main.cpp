@@ -26,7 +26,7 @@ Notes: Nano328 is the only properly working board at the moment.
 
 // Doesn't work properly yet.
 #if defined(ESP32)
-#include "board_esp32.h"
+//#include "board_esp32.h"
 #endif
 
 // Works well
