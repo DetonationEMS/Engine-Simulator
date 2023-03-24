@@ -2,7 +2,9 @@
 #if defined(PICO)
 
 #include <cstdint>
-#include <stdlib.h>
+#include <hardware/pio_instructions.h>
+#include <hardware/pio.h>
+#include <hardware/interp.h>
 #include <pico/multicore.h>
 #include <hardware/irq.h>
 #include <hardware/adc.h>
@@ -19,7 +21,7 @@
 #define encoderPinB 3
 
 // Output Pins
-#define rpmPot A0
+#define rpmPot 31
 #define crankPin 8
 #define camPin 9
 
@@ -53,11 +55,25 @@ uint16_t currentIndex = 0;   // Store currentPattern's indexed value. This value
 // Flag for updating the display
 bool updateDisplayName = true;
 
-// Define a function to initialize board hardware
+
+void updateEncoder()
+{
+    //  Only missing for debug!!
+}
+
+// Holds various instructions needed each time the pattern is changed
+void patternCheck()
+{
+    //  Only missing for debug!!
+}
+
 void initBoard()
 {
+     adc_init();
+    adc_select_input(rpmPot);
+  // Define a function to initialize board hardware
   // Disable global interrupts
-// Pico Timer Stuff goes here.
+  // Pico Timer Stuff goes here.
 
   reset_new_OCR1A(desiredRPM); // Reset the timer pre-scaler
 
@@ -65,7 +81,7 @@ void initBoard()
   pinMode(crankPin, OUTPUT); // set crankPin as an output
   pinMode(camPin, OUTPUT);   // set camPin as an output
 
-  pinMode(rpmPot, INPUT); // set potentiometer as an input
+  //pinMode(rpmPot, INPUT); // set potentiometer as an input
   pinMode(encoderPinA, INPUT_PULLUP);
   pinMode(encoderPinB, INPUT_PULLUP);
 
@@ -79,78 +95,38 @@ void initBoard()
   // EEPROM.get(0, currentPattern); // Get previously stored pattern
 
   // Check if the loaded value is within the range.
-  if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
-  {
+  //if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
+  //{
     currentPattern = 11; // If not use a default value of 11
-  }
+  //}
 }
 
-// This function updates the rotary encoder's current position and current pattern
-void updateEncoder()
+uint32_t calculate_delay_us(float rpm)
 {
-  triggerOutput = false; // Stop the loop
-  ISR_loop = false;      // Ready restart count flag
+  return static_cast<uint32_t>((60.0 / rpm) * 1000000 / sizeof(Wheels[currentPattern].patternLength));
+}
 
-  currentIndex = 0; // Reset the array index to 0
-
-  // Read the current state of the encoder's two digital pins
-  uint8_t MSB = gpio_get(encoderPinA);
-  uint8_t LSB = gpio_get(encoderPinB);
-
-  // Combine the two bits into a single byte using bitwise operators
-  uint8_t encoded = (MSB << 1) | LSB;
-
-  // Update currentPattern based on the change in encoder value
-  if (encoded != lastEncoded)
+void output()
+{
+  while (true)
   {
-    if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
-    {
-      encoderValue++;
-      if (encoderValue % 2 == 0)
-      {
-        currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
-        updateDisplayName = true;
-      }
-    }
-    else if ((lastEncoded == 0b00 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b00))
-    {
-      encoderValue--;
-      if (encoderValue % 2 == 0)
-      {
-        currentPattern = static_cast<WheelType>((currentPattern - 1 + (MAX_WHEELS)) % (MAX_WHEELS));
-        updateDisplayName = true;
-      }
+    uint16_t pot_value = adc_read();
+    float rpm = 100 + ((16000 - 100) * (pot_value / 65535.0));
+
+    uint32_t delay_us = calculate_delay_us(rpm);
+
+    int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
+    digitalWrite(crankPin, pinValue & 0x01);
+    digitalWrite(camPin, (pinValue >> 1) & 0x01);
+    sleep_us(delay_us);
+
+    if (++currentIndex == Wheels[currentPattern].patternLength)
+    {                   // walk the pattern
+      currentIndex = 0; // when the end of the pattern is reached go back to the start.
     }
   }
-  lastEncoded = encoded;         // Update lastEncoded to match encoded
-  EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
-
-  ISR_loop = true; // Restart the loop
 }
 
-// Holds various instructions needed each time the pattern is changed
-void patternCheck()
-{
-  // Checks flag to see if display needs to be updated (has to be better way to do this)
-  if (updateDisplayName == true) // Called if new pattern needs to be displayed.
-  {
-    updateDisplayName = false;
-    updateDisplay(); // Calls function that updates display to new pattern
-  }
-
-  // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
-  if (ISR_loop && loopStartTime == 0) // If ISR_loop has just changed from false to true
-  {
-    loopStartTime = millis(); // Store the start time of the delay
-  }
-  // If restartOutputTime has passed since the start time and the delay has not been reset
-  uint16_t restartOutputTime = 1000;
-  if (millis() - loopStartTime >= restartOutputTime && loopStartTime != 0)
-  {
-    triggerOutput = true; // Set output to true
-    loopStartTime = 0;    // Reset the start time of the delay
-  }
-}
 
 void adc()
 {
@@ -167,11 +143,9 @@ void adc()
   // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
   if (resetPrescaler)
   {
-    timerSetDivider(timer, prescalerBits);
 
     resetPrescaler = false; // Reset resetPrescaler flag
   }
-  timerAlarmWrite(timer, new_OCR1A, true); // Set timerAlarWrite to new_OCR1A for RPM changes
 }
 
 // This function gets bitshift value based on pre-scaler enum
@@ -245,43 +219,6 @@ void reset_new_OCR1A(uint32_t new_rpm)
   new_OCR1A = (uint16_t)(tmp >> bitshift);                  // Update new OCR1A value based on prescaler and bitshift values
   prescalerBits = tmp_prescaler_bits;                       // Update prescalerBits with value stored in tmp_prescaler_bits
   resetPrescaler = true;                                    // Set resetPrescaler flag to true
-}
-
-// This is an interrupt service routine triggered by TIMER1_COMPA_vect interrupt
-ISR(TIMER1_COMPA_vect)
-{
-  TCNT1 = 0; // Reset the timer
-
-  // If triggerOutput flag is true, stream indexed data and control output speed
-  if (triggerOutput == true)
-  {
-    PORTB = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]); // Stream indexed data
-
-    if (++currentIndex == Wheels[currentPattern].patternLength) // Walk the pattern
-    {
-      currentIndex = 0; // At end of array go back to the beginning.
-    }
-  }
-
-  // If resetPrescaler flag is true, reset prescaler based on prescalerBits value
-  if (resetPrescaler)
-  {
-    TCCR1B &= ~((1 << CS10) | (1 << CS11) | (1 << CS12)); // Clear CS10, CS11 and CS12 bits
-    TCCR1B |= prescalerBits;                              // Set prescaler based on prescalerBits value
-    resetPrescaler = false;                               // Reset resetPrescaler flag
-  }
-  OCR1A = new_OCR1A; // Set OCR1A to new_OCR1A for RPM changes
-}
-
-// This is an Interrupt Service Routine (ISR) for Analog to Digital Converter (ADC) Interrupt vector
-ISR(ADC_vect)
-{
-  if (analogPort == 0) // Check if the current ADC port is 0
-  {
-    adc0 = ADCL | (ADCH << 8); // Read the ADC value for port 0
-    adc0_Ready = true;         // Set the flag to indicate the ADC value for port 0 is ready
-    return;
-  }
 }
 
 #endif

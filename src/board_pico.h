@@ -12,7 +12,7 @@ void initBoard();
 void adc();
 void reset_new_OCR1A();
 void patternCheck();
-
+void output();
 
 // Enumerations for pre-scaler
 enum
