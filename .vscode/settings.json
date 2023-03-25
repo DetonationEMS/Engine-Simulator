@@ -23,5 +23,5 @@
     },
     "cmake.generator": "Ninja",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "cmake.sourceDirectory": "c:\\Users\\deton\\pico-sdk\\src\\rp2_common\\pico_stdio"
+    "cmake.sourceDirectory": "c:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.0\\pico-sdk"
 }

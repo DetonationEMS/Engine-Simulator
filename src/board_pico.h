@@ -5,10 +5,8 @@ Pico Notes(apply to me personally):
 May be able to use some tricks from the ESP32 attempt
 Pico notes in binder #3
 */
+
 #include <Arduino.h>
-#include <cstdint>
-#include <hardware/adc.h>
-#include <hardware/gpio.h>
 
 void updateEncoder();
 void patternCheck();

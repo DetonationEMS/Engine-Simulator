@@ -2,6 +2,9 @@
 #if defined(PICO)
 #include <Arduino.h>
 #include <cstdint>
+//#include <stdlib.h>
+#include <stdio.h>
+#include <pico/stdlib.h>
 #include <hardware/adc.h>
 #include <hardware/gpio.h>
 
@@ -138,6 +141,25 @@ void patternCheck()
     triggerOutput = true; // Set output to true
     loopStartTime = 0;    // Reset the start time of the delay
   }
+}
+
+int main()
+{
+    stdio_init_all();
+    gpio_init(encoderPinA);
+    gpio_set_dir(encoderPinA, GPIO_IN);
+    gpio_pull_up(encoderPinA);
+    gpio_init(encoderPinB);
+    gpio_set_dir(encoderPinB, GPIO_IN);
+    gpio_pull_up(encoderPinB);
+    gpio_set_irq_enabled_with_callback(encoderPinA, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &rotary_encoder_isr);
+    gpio_set_irq_enabled_with_callback(encoderPinB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &rotary_encoder_isr);
+
+    while (true)
+    {
+        // Your code here
+    }
+    return 0;
 }
 
 void initBoard()
