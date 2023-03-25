@@ -10,13 +10,13 @@
 #define minWheels 1
 
 // Variables for analog port
-extern uint8_t analogPort; // Store analog port to be being used
-extern uint16_t adc0;      // Store value of RPM potentiometer
-extern bool adc0_Ready;    // Flag used to manipulate the port
+// extern uint8_t analogPort; // Store analog port to be being used
+// extern uint16_t adc0;      // Store value of RPM potentiometer
+// extern bool adc0_Ready;    // Flag used to manipulate the port
 
 // Variables for desired RPM
-extern uint16_t desiredRPM; // Define a variable to store the desired RPM value
-extern uint16_t tempRPM;    // Store variable tempRPM
+// extern uint16_t desiredRPM; // Define a variable to store the desired RPM value
+// extern uint16_t tempRPM;    // Store variable tempRPM
 
 // Variables for output interrupt
 extern bool triggerOutput; // Store value used for output interrupt

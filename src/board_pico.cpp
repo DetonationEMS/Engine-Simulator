@@ -2,9 +2,7 @@
 #if defined(PICO)
 #include <Arduino.h>
 #include <cstdint>
-//#include <stdlib.h>
 #include <stdio.h>
-#include <pico/stdlib.h>
 #include <hardware/adc.h>
 #include <hardware/gpio.h>
 
@@ -26,10 +24,12 @@
 uint16_t loopStartTime = 0; // Store the start time of the delay for output restart
 bool ISR_loop = 1;          // Flag that delays output restart
 bool triggerOutput = true;  // Store value used for output interrupt
+uint32_t delay_us;
+uint32_t delay_ms;
 
 // TIMER1 Compare
-bool resetPrescaler = false; // Flag used to reset timer prescaler
-uint8_t prescalerBits = 0;   // Store the prescaler bits
+bool resetPrescaler = false; // Flag used to reset timer pre-scaler
+uint8_t prescalerBits = 0;   // Store the pre-scaler bits
 uint16_t new_OCR1A;          // New value of OCR1A for timer control
 
 // Rotary Encoder
@@ -42,7 +42,7 @@ uint16_t adc0;      // Store value of RPM potentiometer
 
 // Variables for desired RPM
 uint16_t desiredRPM = 0; // Define a variable to store the desired RPM value
-uint16_t tempRPM = 0;    // Store variable tempRPM
+float tempRPM = 0;       // Store variable tempRPM
 
 // Pattern selection
 extern wheels Wheels[];
@@ -143,25 +143,6 @@ void patternCheck()
   }
 }
 
-int main()
-{
-    stdio_init_all();
-    gpio_init(encoderPinA);
-    gpio_set_dir(encoderPinA, GPIO_IN);
-    gpio_pull_up(encoderPinA);
-    gpio_init(encoderPinB);
-    gpio_set_dir(encoderPinB, GPIO_IN);
-    gpio_pull_up(encoderPinB);
-    gpio_set_irq_enabled_with_callback(encoderPinA, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &rotary_encoder_isr);
-    gpio_set_irq_enabled_with_callback(encoderPinB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &rotary_encoder_isr);
-
-    while (true)
-    {
-        // Your code here
-    }
-    return 0;
-}
-
 void initBoard()
 {
   adc_init();
@@ -177,85 +158,26 @@ void initBoard()
   //}
 }
 
-// uint32_t calculate_delay_us(float new_rpm)
-//{
-//   return static_cast<uint32_t>((60.0 / new_rpm) * 1000000 / sizeof(Wheels[currentPattern].patternLength));
-// }
-
 void output()
 {
+  static uint32_t lastUpdateTime = 0;
+  uint32_t currentTime = millis();
+
   if (triggerOutput == true)
   {
-    uint16_t pot_value = adc_read(); // this read working
-    float new_rpm = 100 + ((16000 - 100) * (pot_value / 65535.0));
+    if (currentTime - lastUpdateTime >= delay_us)
+    {
+      int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
+      digitalWrite(crankPin, pinValue & 0x01);
+      digitalWrite(camPin, (pinValue >> 1) & 0x01);
 
-    uint32_t delay_us = new_rpm;
+      if (++currentIndex == Wheels[currentPattern].patternLength)
+      {                   // walk the pattern
+        currentIndex = 0; // when the end of the pattern is reached go back to the start.
+      }
 
-    int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
-    digitalWrite(crankPin, pinValue & 0x01);
-    digitalWrite(camPin, (pinValue >> 1) & 0x01);
-    sleep_us(delay_us);
-
-    if (++currentIndex == Wheels[currentPattern].patternLength)
-    {                   // walk the pattern
-      currentIndex = 0; // when the end of the pattern is reached go back to the start.
+      lastUpdateTime = currentTime;
     }
-  }
-}
-
-// This function gets bitshift value based on pre-scaler enum
-uint8_t get_bitshift_from_prescaler(uint8_t *prescalerBits)
-{
-  switch (*prescalerBits)
-  { // Check prescaler enum and assign corresponding bitshift value
-  case PRESCALE_1024:
-    return 10;
-  case PRESCALE_256:
-    return 8;
-  case PRESCALE_64:
-    return 6;
-  case PRESCALE_8:
-    return 3;
-  case PRESCALE_1:
-    return 0;
-  }
-  return 0; // Return 0 if no corresponding bitshift value is found
-}
-
-// This function takes a pointer to a potential OCR1A value, and two pointers to variables representing the prescaler and bitshift values
-// The function then determines the correct prescaler and bitshift values based on the given OCR1A value
-void get_prescaler_bits(uint32_t *potential_oc_value, uint8_t *prescaler, uint8_t *bitshift)
-{
-  // Assign corresponding prescaler enum and bitshift values based on OCR1A value
-  if (*potential_oc_value >= 16777216)
-  {
-    // If OCR1A value is greater than or equal to 16777216
-    *prescaler = PRESCALE_1024;
-    *bitshift = 10;
-  }
-  else if (*potential_oc_value >= 4194304)
-  {
-    // If OCR1A value is greater than or equal to 4194304
-    *prescaler = PRESCALE_256;
-    *bitshift = 8;
-  }
-  else if (*potential_oc_value >= 524288)
-  {
-    // If OCR1A value is greater than or equal to 524288
-    *prescaler = PRESCALE_64;
-    *bitshift = 6;
-  }
-  else if (*potential_oc_value >= 65536)
-  {
-    // If OCR1A value is greater than or equal to 65536
-    *prescaler = PRESCALE_8;
-    *bitshift = 3;
-  }
-  else
-  {
-    // If OCR1A value is less than 65536
-    *prescaler = PRESCALE_1;
-    *bitshift = 0;
   }
 }
 
@@ -264,30 +186,29 @@ void calculate_delay_us(uint32_t new_rpm)
 {
   // Store temporary variables
   uint32_t tmp;
-  uint8_t bitshift;
-  uint8_t tmp_prescaler_bits;
 
   // Calculate new OCR1A value based on current pattern and target RPM
-  tmp = (uint32_t)(8000000.0 / (Wheels[currentPattern].rpm_scaler * (float)(new_rpm < 10 ? 10 : new_rpm)));
+  tmp = (uint32_t)(8000.0 / (Wheels[currentPattern].rpm_scaler * (float)(new_rpm < 10 ? 10 : new_rpm)));
 
-  get_prescaler_bits(&tmp, &tmp_prescaler_bits, &bitshift); // Determine prescaler and bitshift values based on OCR1A value
-  new_OCR1A = (uint16_t)(tmp >> bitshift);                  // Update new OCR1A value based on prescaler and bitshift values
-  prescalerBits = tmp_prescaler_bits;                       // Update prescalerBits with value stored in tmp_prescaler_bits
-  resetPrescaler = true;                                    // Set resetPrescaler flag to true
+  resetPrescaler = true; // Set resetPrescaler flag to true
 }
+
 void adc()
 {
-  // This isn't working properly.
 
-  // uint16_t adc0 = adc_read();
-  // adc0 = analogRead(rpmPot);
+  uint16_t pot_value = adc_read(); // this read working
 
-  tempRPM = adc0 <<= tmpRPM_Shift;
+  // float new_rpm = 100 + ((16000 - 100) * (pot_value / 65535.0));
+  float new_rpm = 100 + ((16000 - 100) * (pot_value / 65535.0));
+
+  //uint16_t tempRPM = (uint32_t)(((16000 - 100) * (pot_value / 65535.0) / (Wheels[currentPattern].rpm_scaler *
+
   // Check if tempRPM is greater than maxRPM
   // If it is, assign the value of maxRPM to tempRPM, else keep it as is
   tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
-  desiredRPM = tempRPM;        // Assign the value of tempRPM to the desiredRPM variable
-  calculate_delay_us(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
+  delay_us = tempRPM;        // Assign the value of tempRPM to the desiredRPM variable
+  
+  // calculate_delay_us(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
 
   // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
   if (resetPrescaler)

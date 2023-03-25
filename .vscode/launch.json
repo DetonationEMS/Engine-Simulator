@@ -9,88 +9,38 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Pico Debug (Cortex-Debug)",
-            "cwd": "${workspaceFolder}",
-            "executable": "${command:cmake.launchTargetPath}",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "openocd",
-            "gdbPath": "arm-none-eabi-gdb",
-            "device": "RP2040",
-            "configFiles": [
-                "interface/cmsis-dap.cfg",
-                "target/rp2040.cfg"
-            ],
-            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
-            "runToEntryPoint": "main",
-            "openOCDLaunchCommands": [
-                "adapter speed 1000"
-            ]
-        },
-        {
-            "name": "Pico Debug (Cortex-Debug with external OpenOCD)",
-            "cwd": "${workspaceFolder}",
-            "executable": "${command:cmake.launchTargetPath}",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "external",
-            "gdbTarget": "localhost:3333",
-            "gdbPath": "arm-none-eabi-gdb",
-            "device": "RP2040",
-            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
-            "runToEntryPoint": "main"
-        },
-        {
-            "name": "Pico Debug (C++ Debugger)",
-            "type": "cppdbg",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "program": "${command:cmake.launchTargetPath}",
-            "MIMode": "gdb",
-            "miDebuggerPath": "arm-none-eabi-gdb",
-            "miDebuggerServerAddress": "localhost:3333",
-            "debugServerPath": "openocd",
-            "debugServerArgs": "-f interface/cmsis-dap.cfg -f target/rp2040.cfg -c \"adapter speed 1000\"",
-            "serverStarted": "Listening on port .* for gdb connections",
-            "filterStderr": true,
-            "stopAtEntry": true,
-            "hardwareBreakpoints": {
-                "require": true,
-                "limit": 4
-            },
-            "preLaunchTask": "Flash",
-            "svdPath": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd"
-        },
-        {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/nanoatmega328/firmware.elf",
-            "projectEnvName": "nanoatmega328",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/pico/firmware.elf",
+            "projectEnvName": "pico",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-gccarmnoneeabi@1.90201.191206/bin",
             "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "C:/Users/deton/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
-                "task": "Pre-Debug"
+                "task": "Pre-Debug (pico)"
             }
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/nanoatmega328/firmware.elf",
-            "projectEnvName": "nanoatmega328",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-atmelavr/bin",
-            "internalConsoleOptions": "openOnSessionStart"
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/pico/firmware.elf",
+            "projectEnvName": "pico",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-gccarmnoneeabi@1.90201.191206/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "C:/Users/deton/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/nanoatmega328/firmware.elf",
-            "projectEnvName": "nanoatmega328",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/pico/firmware.elf",
+            "projectEnvName": "pico",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-gccarmnoneeabi@1.90201.191206/bin",
             "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "C:/Users/deton/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
             "loadMode": "manual"
         }
     ]
