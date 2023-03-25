@@ -71,8 +71,8 @@ void initBoard()
   // Check if the loaded value is within the range.
   // if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
   //{
-  currentPattern = 42; // Audi  
-  // currentPattern = 11; // 12-1
+  // currentPattern = 42; // Audi
+  currentPattern = 11; // 12-1
   // currentPattern = 7; // 24-1
   //}
 }
@@ -81,13 +81,15 @@ void adc()
 {
   potValue = adc_read(); // this read working
 
-  // Normalize the potentiometer value to a range between 0 and 1
-  float normalizedPotValue = (float)potValue / (float)4095; // 4095 is the max ADC value for Raspberry Pi Pico
+  // Normalize the potentiometer value to a range between 0 and 1000
+  int normalizedPotValue = (potValue * 4095) / 4095;
 
-  int desiredRPM = minRPM + (int)((maxRPM - minRPM) * normalizedPotValue);
+  int desiredRPM = minRPM + (((maxRPM - minRPM) * normalizedPotValue) / 4096);
 
   // Access the specific pattern stored in Wheels using currentPattern as an index
-  triggerDelay = 600000.0 / ((float)desiredRPM * Wheels[currentPattern].rpm_scaler);
+  double scaler = Wheels[currentPattern].rpm_scaler * (Wheels[currentPattern].wheel_degrees / 360.0);
+
+  triggerDelay = 600000.0 / ((double)desiredRPM * scaler);
 }
 
 void output()
