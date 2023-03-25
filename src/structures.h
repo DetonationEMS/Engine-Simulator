@@ -8,6 +8,12 @@
 #include <stdint.h>
 #include "wheel_defs.h"
 
+// Important constants for RPM and Array Selection control
+#define tmpRPM_Shift 4 // x16, 0-16384 RPM via pot
+#define minRPM 100
+#define maxRPM 16384   // MAX RPM via pot control
+#define minWheels 1
+
 // Access the specific pattern stored in Wheels using currentPattern as an index
 // const char *selectedPatternName = Wheels[currentPattern].patternName;
 // const unsigned char *selectedTriggerPattern = Wheels[currentPattern].selectedPattern;

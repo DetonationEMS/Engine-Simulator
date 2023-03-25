@@ -4,10 +4,7 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
-// Define constants for RPM and Array Selection control
-#define tmpRPM_Shift 4 // x16, 0-16384 RPM via pot
-#define maxRPM 16384   // MAX RPM via pot control
-#define minWheels 1
+
 
 // Variables for analog port
 // extern uint8_t analogPort; // Store analog port to be being used
