@@ -23,6 +23,7 @@
 
 // Ardustim Variables
 extern wheels Wheels[];
+extern uint8_t currentPattern;   // Store Currently selected pattern. Stored in EEPROM.
 
 void loadDisplay()
 {

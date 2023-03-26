@@ -45,34 +45,45 @@ bool updateDisplayName = true; // Flag for updating the display
 
 void encoder()
 {
-     triggerOutput = false; // Stop the loop
-    currentIndex = 0;      // Reset the array index to 0
+  triggerOutput = false; // Stop the loop
+  ISR_loop = false;      // Ready restart count flag
 
-    // Read the current state of the encoder's two digital pins
-    a = gpio_get(picoEncoderPinA);
-    b = gpio_get(picoEncoderPinB);
+  currentIndex = 0; // Reset the array index to 0
 
-    // Update currentPattern based on the change in encoder value
-    if (lastEncoded != a && a == b)
+  // Read the current state of the encoder's two digital pins
+  uint8_t MSB = gpio_get(picoEncoderPinA);
+  uint8_t LSB = gpio_get(picoEncoderPinB);
+
+  // Combine the two bits into a single byte using bitwise operators
+  uint8_t encoded = (MSB << 1) | LSB;
+
+  // Update currentPattern based on the change in encoder value
+  if (encoded != lastEncoded)
+  {
+    if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
     {
-      // Clockwise rotation
       encoderValue++;
-      currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
-      updateDisplayName = true;
+      if (encoderValue % 2 == 0)
+      {
+        currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
+        updateDisplayName = true;
+      }
     }
-    else if (lastEncoded != a && a != b)
+    else if ((lastEncoded == 0b00 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b00))
     {
-      // Counter-clockwise rotation
       encoderValue--;
-      currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
-      updateDisplayName = true;
+      if (encoderValue % 2 == 0)
+      {
+        currentPattern = static_cast<WheelType>((currentPattern - 1 + (MAX_WHEELS)) % (MAX_WHEELS));
+        updateDisplayName = true;
+      }
     }
-    lastEncoded = a;
-
-    // EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
-    ISR_loop = true; // Restart the loop
   }
+  lastEncoded = encoded; // Update lastEncoded to match encoded
+  // EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
 
+  ISR_loop = true; // Restart the loop
+}
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
@@ -107,12 +118,12 @@ void initBoard()
   _gpio_init(picoEncoderPinA);
   gpio_set_dir(picoEncoderPinA, GPIO_IN);
   gpio_pull_up(picoEncoderPinA);
-  gpio_set_irq_enabled_with_callback(picoEncoderPinA, GPIO_IRQ_EDGE_FALL, true, (gpio_irq_callback_t)encoder);
+  gpio_set_irq_enabled_with_callback(picoEncoderPinA, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, (gpio_irq_callback_t)encoder);
 
   _gpio_init(picoEncoderPinB);
   gpio_set_dir(picoEncoderPinB, GPIO_IN);
   gpio_pull_up(picoEncoderPinB);
-  gpio_set_irq_enabled_with_callback(picoEncoderPinB, GPIO_IRQ_EDGE_FALL, true, (gpio_irq_callback_t)encoder);
+  gpio_set_irq_enabled_with_callback(picoEncoderPinB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, (gpio_irq_callback_t)encoder);
 
   // Check if the loaded value is within the range.
   if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
