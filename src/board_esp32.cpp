@@ -3,12 +3,12 @@
  *  Testing done on ESP32-S2. ( https://www.amazon.com/dp/B0B7WY3MWG?psc=1&ref=ppx_yo2ov_dt_b_product_details )
  *
  * Although OCR1A doesn't exist on the ESP32 platform the variable name is retained
- * for my ease of understanding while coding. Variable names will be changed appropriately as I 
+ * for my ease of understanding while coding. Variable names will be changed appropriately as I
  * better understand the ESP32 onboard timers.
  *
  * I am learning the ACD input of the esp32 might not be as friendly as I would like for this project.
  * I need to do more research and possible switch to a different MCU.
- * 
+ *
  */
 #if defined(ESP32)
 #include <Arduino.h>
@@ -22,43 +22,31 @@
 // #include "display.h"
 
 // Rotary Encoder pins
-#define encoderPinA GPIO_NUM_36
-#define encoderPinB GPIO_NUM_38
+#define ESP32encoderPinA GPIO_NUM_36
+#define ESP32encoderPinB GPIO_NUM_38
 
 // Output Pins
-#define rpmPot GPIO_NUM_12
-#define crankPin GPIO_NUM_3
-#define camPin GPIO_NUM_5
+#define ESP32rpmPot GPIO_NUM_12
+#define ESP32crankPin GPIO_NUM_3
+#define ESP32camPin GPIO_NUM_5
 
-// TIMER1 Interrupt Service Routine (ISR)
+// Non-Pico Specific Variables.
 uint16_t loopStartTime = 0; // Store the start time of the delay for output restart
 bool ISR_loop = 1;          // Flag that delays output restart
 bool triggerOutput = true;  // Store value used for output interrupt
-
-// TIMER1 Compare
-bool resetPrescaler = false; // Flag used to reset timer prescaler
-uint8_t prescalerBits = 0;   // Store the prescaler bits
-uint16_t new_OCR1A;          // New value of OCR1A for timer control
-
+float triggerDelay;         // Store delay maths
+uint16_t prescaler;
 // Rotary Encoder
 uint8_t lastEncoded = 0;
 uint16_t encoderValue = 0;
-
-// Variables for analog port
-uint8_t analogPort; // Store analog port to be being used
-uint16_t adc0;      // Store value of RPM potentiometer
-
-// Variables for desired RPM
+// Variables for analog input and RPM control
+uint16_t potValue;
 uint16_t desiredRPM = 0; // Define a variable to store the desired RPM value
-uint16_t tempRPM = 0;    // Store variable tempRPM
-
 // Pattern selection
 extern wheels Wheels[];
-uint8_t currentPattern = 11; // Store Currently selected pattern. Stored in EEPROM.
-uint16_t currentIndex = 0;   // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
-
-// Flag for updating the display
-bool updateDisplayName = true;
+uint8_t currentPattern = 11;   // Store Currently selected pattern. Stored in EEPROM.
+uint16_t currentIndex = 0;     // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
+bool updateDisplayName = true; // Flag for updating the display
 
 // Configure the hardware timer for RPM control
 hw_timer_t *timer = NULL;
@@ -67,164 +55,156 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 // Define the timer interrupt service routine
 void IRAM_ATTR onTimer()
 {
-    portENTER_CRITICAL_ISR(&timerMux);
+  portENTER_CRITICAL_ISR(&timerMux);
 
+  if (triggerOutput == true)
+  {
     int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
-    digitalWrite(crankPin, pinValue & 0x01);
-    digitalWrite(camPin, (pinValue >> 1) & 0x01);
+    digitalWrite(ESP32crankPin, pinValue & 0x01);
+    digitalWrite(ESP32camPin, (pinValue >> 1) & 0x01);
 
     if (++currentIndex == Wheels[currentPattern].patternLength)
-    {                     // walk the pattern
-        currentIndex = 0; // when the end of the pattern is reached go back to the start.
+    {                   // walk the pattern
+      currentIndex = 0; // when the end of the pattern is reached go back to the start.
     }
-    portEXIT_CRITICAL_ISR(&timerMux);
+  }
+  portEXIT_CRITICAL_ISR(&timerMux);
 }
 
-void updateEncoder()
+void encoder()
 {
-    //  Only missing for debug!!
+  triggerOutput = false; // Stop the loop
+  ISR_loop = false;      // Ready restart count flag
+
+  currentIndex = 0; // Reset the array index to 0
+
+  // Read the current state of the encoder's two digital pins
+  uint8_t MSB = digitalRead(ESP32encoderPinA);
+  uint8_t LSB = digitalRead(ESP32encoderPinB);
+
+  // Combine the two bits into a single byte using bitwise operators
+  uint8_t encoded = (MSB << 1) | LSB;
+
+  // Update currentPattern based on the change in encoder value
+  if (encoded != lastEncoded)
+  {
+    if ((lastEncoded == 0b00 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b00))
+    {
+      encoderValue++;
+      if (encoderValue % 2 == 0)
+      {
+        currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
+        updateDisplayName = true;
+      }
+    }
+    else if ((lastEncoded == 0b00 && encoded == 0b10) || (lastEncoded == 0b10 && encoded == 0b11) || (lastEncoded == 0b11 && encoded == 0b01) || (lastEncoded == 0b01 && encoded == 0b00))
+    {
+      encoderValue--;
+      if (encoderValue % 2 == 0)
+      {
+        currentPattern = static_cast<WheelType>((currentPattern - 1 + (MAX_WHEELS)) % (MAX_WHEELS));
+        updateDisplayName = true;
+      }
+    }
+  }
+  lastEncoded = encoded; // Update lastEncoded to match encoded
+
+  // EEPROM.writeInt(0, currentPattern); // Store currentPattern to EEPROM
+
+  ISR_loop = true; // Restart the loop
 }
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
 {
-    //  Only missing for debug!!
+  // Checks flag to see if display needs to be updated (has to be better way to do this)
+  if (updateDisplayName == true) // Called if new pattern needs to be displayed.
+  {
+    updateDisplayName = false;
+    // updateDisplay(); // Calls function that updates display to new pattern
+  }
+
+  // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
+  if (ISR_loop && loopStartTime == 0) // If ISR_loop has just changed from false to true
+  {
+    loopStartTime = millis(); // Store the start time of the delay
+  }
+  // If restartOutputTime has passed since the start time and the delay has not been reset
+  uint16_t restartOutputTime = 1000;
+  if (millis() - loopStartTime >= restartOutputTime && loopStartTime != 0)
+  {
+    triggerOutput = true; // Set output to true
+    loopStartTime = 0;    // Reset the start time of the delay
+  }
 }
 
 // Define a function to initialize board hardware
 void initBoard()
 {
-    // initialize EEPROM
-    // EEPROM.begin(EEPROM_SIZE);
+  // initialize EEPROM
+  // EEPROM.begin(EEPROM_SIZE);
 
-    // Add other setup code here (e.g., pinMode, EEPROM.get, etc.)
+  // Configure timer
+  prescaler = 16; // Initiate sane value.
 
-    // Configure ADC
-    // adc1_config_width(ADC_WIDTH_BIT_12);                        // 12-bit ADC resolution
-    // adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11); // ADC1_CHANNEL_0 is GPIO36, 11dB attenuation
+  timer = timerBegin(0, prescaler, true); // 16 prescaler for 5MHz
+  timerAttachInterrupt(timer, &onTimer, true);
+  timerAlarmWrite(timer, 1000, true); // Set initial alarm value
+  timerAlarmEnable(timer);
 
-    // Configure timer
-    timer = timerBegin(0, 16, true); // 16 prescaler for 5MHz
-    timerAttachInterrupt(timer, &onTimer, true);
-    timerAlarmWrite(timer, 1000, true); // Set initial alarm value
-    timerAlarmEnable(timer);
+  // Configure pin modes for inputs and outputs
+  pinMode(ESP32crankPin, OUTPUT); // set crankPin as an output
+  pinMode(ESP32camPin, OUTPUT);   // set camPin as an output
 
-    // Configure pin modes for inputs and outputs
-    pinMode(crankPin, OUTPUT); // set crankPin as an output
-    pinMode(camPin, OUTPUT);   // set camPin as an output
+  pinMode(ESP32rpmPot, INPUT); // set potentiometer as an input
+  pinMode(ESP32encoderPinA, INPUT_PULLUP);
+  pinMode(ESP32encoderPinB, INPUT_PULLUP);
 
-    pinMode(rpmPot, INPUT); // set potentiometer as an input
-    pinMode(encoderPinA, INPUT_PULLUP);
-    pinMode(encoderPinB, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(ESP32encoderPinA), encoder, CHANGE); // Interrupts for rotary encoder
+  attachInterrupt(digitalPinToInterrupt(ESP32encoderPinB), encoder, CHANGE); // Interrupts for rotary encoder
 
-    attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE); // Interrupts for rotary encoder
-    attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE); // Interrupts for rotary encoder
+  // COMMENTED OUT FOR DEBUG
+  // EEPROM.get(0, currentPattern); // Get previously stored pattern
 
-    // COMMENTED OUT FOR DEBUG
-    // EEPROM.get(0, currentPattern); // Get previously stored pattern
+  // Check if the loaded value is within the range.
+  if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
+  {
+    currentPattern = 11; // If not use a default value of 11
+  }
+}
 
-    // Check if the loaded value is within the range.
-    if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
-    {
-        currentPattern = 11; // If not use a default value of 11
-    }
+float calculateScaledRPM(int arrayLength)
+{
+  int minLength = 4;
+  int maxLength = 1440;
+  int rpmRange = maxRPM - minRPM;
+
+  float normalizedLength = static_cast<float>(arrayLength - minLength) / (maxLength - minLength);
+  float scaledRPM = normalizedLength * rpmRange + minRPM;
+
+  return scaledRPM;
 }
 
 void adc()
 {
-    // adc0 = adc1_get_raw(ADC1_CHANNEL_0);
-    adc0 = analogRead(rpmPot);
+  potValue = analogRead(ESP32rpmPot); // this read working
 
-    tempRPM = adc0 <<= tmpRPM_Shift;
-    // Check if tempRPM is greater than maxRPM
-    // If it is, assign the value of maxRPM to tempRPM, else keep it as is
-    tempRPM = (tempRPM > maxRPM) ? maxRPM : tempRPM;
-    desiredRPM = tempRPM;     // Assign the value of tempRPM to the desiredRPM variable
-    reset_new_OCR1A(tempRPM); // Call the reset_new_OCR1A function with tempRPM as argument
+  // Normalize the potentiometer value to a range between 0 and 1000
+  int normalizedPotValue = (potValue * 4095) / 4095;
 
-    // If resetPrescaler flag is true, reset pre-scaler based on pre-scalerBits value
-    if (resetPrescaler)
-    {
-        // timerAlarmDisable(timer); // Disable the timer alarm
-        timerSetDivider(timer, prescalerBits);
-        // timer = timerBegin(0, 80, true); // 80 prescaler for 1MHz
-        // timerAttachInterrupt(timer, &onTimer, true);
-        // timerAlarmEnable(timer);
-        resetPrescaler = false; // Reset resetPrescaler flag
-    }
-    timerAlarmWrite(timer, new_OCR1A, true); // Set timerAlarWrite to new_OCR1A for RPM changes
+  int desiredRPM = minRPM + (((maxRPM - minRPM) * normalizedPotValue) / 4096);
+
+  // Access the specific pattern stored in Wheels using currentPattern as an index
+  double scaler = Wheels[currentPattern].rpm_scaler * ((Wheels[currentPattern].wheel_degrees / 360.0));
+
+  triggerDelay = 600000.0 / ((double)desiredRPM * scaler);
+  timerAlarmWrite(timer, triggerDelay, true); // Set timerAlarWrite to new_OCR1A for RPM changes
 }
 
-// This function gets bitshift value based on pre-scaler enum
-uint8_t get_bitshift_from_prescaler(uint8_t *prescalerBits)
+void output()
 {
-    switch (*prescalerBits)
-    { // Check prescaler enum and assign corresponding bitshift value
-    case PRESCALE_1024:
-        return 10;
-    case PRESCALE_256:
-        return 8;
-    case PRESCALE_64:
-        return 6;
-    case PRESCALE_8:
-        return 3;
-    case PRESCALE_1:
-        return 0;
-    }
-    return 0; // Return 0 if no corresponding bitshift value is found
-}
-
-// This function takes a pointer to a potential OCR1A value, and two pointers to variables representing the prescaler and bitshift values
-// The function then determines the correct prescaler and bitshift values based on the given OCR1A value
-void get_prescaler_bits(uint32_t *potential_oc_value, uint8_t *prescaler, uint8_t *bitshift)
-{
-    // Assign corresponding prescaler enum and bitshift values based on OCR1A value
-    if (*potential_oc_value >= 16777216)
-    {
-        // If OCR1A value is greater than or equal to 16777216
-        *prescaler = PRESCALE_1024;
-        *bitshift = 10;
-    }
-    else if (*potential_oc_value >= 4194304)
-    {
-        // If OCR1A value is greater than or equal to 4194304
-        *prescaler = PRESCALE_256;
-        *bitshift = 8;
-    }
-    else if (*potential_oc_value >= 524288)
-    {
-        // If OCR1A value is greater than or equal to 524288
-        *prescaler = PRESCALE_64;
-        *bitshift = 6;
-    }
-    else if (*potential_oc_value >= 65536)
-    {
-        // If OCR1A value is greater than or equal to 65536
-        *prescaler = PRESCALE_8;
-        *bitshift = 3;
-    }
-    else
-    {
-        // If OCR1A value is less than 65536
-        *prescaler = PRESCALE_1;
-        *bitshift = 0;
-    }
-}
-
-// This function sets new OCR1A value based on target RPM
-void reset_new_OCR1A(uint32_t new_rpm)
-{
-    // Store temporary variables
-    uint32_t tmp;
-    uint8_t bitshift;
-    uint8_t tmp_prescaler_bits;
-
-    // Calculate new OCR1A value based on current pattern and target RPM
-    tmp = (uint32_t)(8000000.0 / (Wheels[currentPattern].rpm_scaler * (float)(new_rpm < 10 ? 10 : new_rpm)));
-
-    get_prescaler_bits(&tmp, &tmp_prescaler_bits, &bitshift); // Determine prescaler and bitshift values based on OCR1A value
-    new_OCR1A = (uint16_t)(tmp >> bitshift);                  // Update new OCR1A value based on prescaler and bitshift values
-    prescalerBits = tmp_prescaler_bits;                       // Update prescalerBits with value stored in tmp_prescaler_bits
-    resetPrescaler = true;                                    // Set resetPrescaler flag to true
+  // pre-scaler testing
+  // Set the timer prescaler to the mapped value
+  timerSetDivider(0, Wheels[currentPattern].patternLength);
 }
 #endif
