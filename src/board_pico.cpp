@@ -17,8 +17,8 @@
 
 // Pico Specific variables.
 // Rotary Encoder pins
-const uint8_t picoEncoderPinA = 1;
-const uint8_t picoEncoderPinB = 2;
+const uint8_t picoEncoderPinA = 14; // GP14
+const uint8_t picoEncoderPinB = 15; // GP15
 // Output Pins
 const uint8_t picoRpmPot = ADC0;
 const uint8_t picoCrankPin = 8;
@@ -32,8 +32,6 @@ float triggerDelay;         // Store delay maths
 // Rotary Encoder
 uint8_t lastEncoded = 0;
 uint16_t encoderValue = 0;
-bool a = LOW;
-bool b = LOW;
 // Variables for analog input and RPM control
 uint16_t potValue;
 uint16_t desiredRPM = 0; // Define a variable to store the desired RPM value
@@ -111,6 +109,7 @@ void patternCheck()
 
 void initBoard()
 {
+
   adc_init();
   adc_select_input(picoRpmPot);
 
@@ -132,6 +131,8 @@ void initBoard()
     currentPattern = 11; // 12-1
     // currentPattern = 7; // 24-1
   }
+
+  // loadDisplay();
 }
 
 void adc()
