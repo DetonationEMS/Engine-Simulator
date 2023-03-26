@@ -39,16 +39,14 @@ Notes: Nano328 is the only properly working board at the moment.
 #if defined(PICO)
 #include "board_pico.h"
 #include "display.h"
+#include <avr/pgmspace.h>
+
 #endif
 
 uint16_t startTime;
 
 void setup()
 {
-#if defined(USE_TINY4K)
-  loadDisplay();
-#endif
-
   initBoard(); // Initialize Board
 }
 

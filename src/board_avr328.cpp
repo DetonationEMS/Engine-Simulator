@@ -160,6 +160,8 @@ void initBoard()
 
   EEPROM.get(0, currentPattern); // Get previously stored pattern
 
+  loadDisplay();
+
   // Check if the loaded value is within the range.
   if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
   {

@@ -8,7 +8,7 @@ Pico notes in binder #3
 
 #include <Arduino.h>
 
-void encoder(uint gpio, uint32_t events);
+void encoder();
 void patternCheck();
 void initBoard();
 void encoder();
