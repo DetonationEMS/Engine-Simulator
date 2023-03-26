@@ -3,17 +3,12 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
-// #include <pico/stdlib.h>
 #include "pico.h"
 #include <cstdint>
 #include <stdio.h>
 #include <hardware/adc.h>
 #include <hardware/gpio.h>
-#include "pico/binary_info.h"
-#include <hardware/flash.h>
-#include <hardware/sync.h>
 
-#include "board_avr328.h"
 #include "wheel_defs.h"
 #include "structures.h"
 #include "display.h"
@@ -82,7 +77,7 @@ void encoder()
   }
   lastEncoded = encoded; // Update lastEncoded to match encoded
 
-  EEPROM.writeInt(0, currentPattern); // Store currentPattern to EEPROM
+  // EEPROM.writeInt(0, currentPattern); // Store currentPattern to EEPROM
 
   ISR_loop = true; // Restart the loop
 }
@@ -113,7 +108,7 @@ void patternCheck()
 
 void initBoard()
 {
-  eeprom_init();
+  // eeprom_init();
 
   adc_init();
   adc_select_input(picoRpmPot);
@@ -129,8 +124,8 @@ void initBoard()
   gpio_pull_up(picoEncoderPinB);
   gpio_set_irq_enabled_with_callback(picoEncoderPinB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, (gpio_irq_callback_t)encoder);
 
-  EEPROM.begin(256);
-  EEPROM.readInt(0, currentPattern); // Store currentPattern to EEPROM
+  // EEPROM.begin(256);
+  // EEPROM.readInt(0, currentPattern); // Store currentPattern to EEPROM
 
   // Check if the loaded value is within the range.
   if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
@@ -140,7 +135,7 @@ void initBoard()
     // currentPattern = 7; // 24-1
   }
 
-  loadDisplay();
+  // loadDisplay();
 }
 
 void adc()
