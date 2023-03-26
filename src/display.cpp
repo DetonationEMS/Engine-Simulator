@@ -5,21 +5,25 @@
 // Doesn't work properly. Need to learn to use esp32 timers
 #if defined(ESP32)
 #include "board_esp32.h"
+#include <Tiny4kOLED.h>
+#include <fonts.h>
 #endif
 
 // Works well
 #if defined(AVR328)
 #include "board_avr328.h"
+#include <Tiny4kOLED.h>
+#include <fonts.h>
 #endif
 
 // Works well
 #if defined(PICO)
 #include "board_pico.h"
+#include <Tiny4kOLED.h>
+
 #endif
 
 #if defined(USE_TINY4K)
-#include <Tiny4kOLED.h>
-#include <fonts.h>
 
 // Ardustim Variables
 extern wheels Wheels[];
@@ -41,7 +45,7 @@ void loadDisplay()
 void updateDisplay()
 {
     oled.clear(); // Clear Screen
-    oled.setFont(FONT8X16ATARI);
+    oled.setFont(FONT8X16);
     oled.setCursor(0, 0);
     oled.print("Pattern: ");
     oled.print(currentPattern + 1); // Add one to exclude 0 from pattern count
