@@ -12,35 +12,32 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/pico/firmware.elf",
-            "projectEnvName": "pico",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-gccarmnoneeabi@1.90201.191206/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/lolin_s2_mini/firmware.elf",
+            "projectEnvName": "lolin_s2_mini",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/deton/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
-                "task": "Pre-Debug (pico)"
+                "task": "Pre-Debug (lolin_s2_mini)"
             }
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/pico/firmware.elf",
-            "projectEnvName": "pico",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-gccarmnoneeabi@1.90201.191206/bin",
-            "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/deton/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd"
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/lolin_s2_mini/firmware.elf",
+            "projectEnvName": "lolin_s2_mini",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-xtensa-esp32s2/bin",
+            "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/pico/firmware.elf",
-            "projectEnvName": "pico",
-            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-gccarmnoneeabi@1.90201.191206/bin",
+            "executable": "C:/Users/deton/Documents/GitHub/Engine-Simulator/.pio/build/lolin_s2_mini/firmware.elf",
+            "projectEnvName": "lolin_s2_mini",
+            "toolchainBinDir": "C:/Users/deton/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/deton/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
             "loadMode": "manual"
         }
     ]
