@@ -1,6 +1,7 @@
 // DOES NOT WORK. Threw together to progress the idea in the future.
 #if defined(PICO)
 #include <Arduino.h>
+#include <avr/pgmspace.h>
 
 // #include <pico/stdlib.h>
 #include "pico.h"
@@ -14,77 +15,64 @@
 #include "structures.h"
 #include "display.h"
 
+// Pico Specific variables.
 // Rotary Encoder pins
-#define picoEncoderPinA 16
-#define picoEncoderPinB 17
-
+const uint8_t picoEncoderPinA = 1;
+const uint8_t picoEncoderPinB = 2;
 // Output Pins
-#define rpmPot ADC0
-#define crankPin 8
-#define camPin 9
+const uint8_t picoRpmPot = ADC0;
+const uint8_t picoCrankPin = 8;
+const uint8_t picoCamPin = 9;
 
-// TIMER1 Interrupt Service Routine (ISR)
+// Non-Pico Specific Variables.
 uint16_t loopStartTime = 0; // Store the start time of the delay for output restart
 bool ISR_loop = 1;          // Flag that delays output restart
 bool triggerOutput = true;  // Store value used for output interrupt
-uint32_t delay_us;
-uint32_t delay_ms;
-float triggerDelay;
-
-// TIMER1 Compare
-bool resetPrescaler = false; // Flag used to reset timer pre-scaler
-uint8_t prescalerBits = 0;   // Store the pre-scaler bits
-uint16_t new_OCR1A;          // New value of OCR1A for timer control
-
+float triggerDelay;         // Store delay maths
 // Rotary Encoder
 uint8_t lastEncoded = 0;
 uint16_t encoderValue = 0;
-
-// Variables for analog port
+bool a = LOW;
+bool b = LOW;
+// Variables for analog input and RPM control
 uint16_t potValue;
-
-// Variables for desired RPM
 uint16_t desiredRPM = 0; // Define a variable to store the desired RPM value
-float tempRPM = 0;       // Store variable tempRPM
-
 // Pattern selection
 extern wheels Wheels[];
-uint8_t currentPattern = 11; // Store Currently selected pattern. Stored in EEPROM.
-uint16_t currentIndex = 0;   // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
+uint8_t currentPattern = 11;   // Store Currently selected pattern. Stored in EEPROM.
+uint16_t currentIndex = 0;     // Store currentPattern's indexed value. This value must be set to zero each time the pattern changes, starts or stops.
+bool updateDisplayName = true; // Flag for updating the display
 
-// Flag for updating the display
-bool updateDisplayName = true;
-
-void encoder(uint gpio, uint32_t events)
+void encoder()
 {
-  triggerOutput = false; // Stop the loop
-  currentIndex = 0;      // Reset the array index to 0
+     triggerOutput = false; // Stop the loop
+    currentIndex = 0;      // Reset the array index to 0
 
-  // Read the current state of the encoder's two digital pins
-  uint8_t a = gpio_get(picoEncoderPinA);
-  uint8_t b = gpio_get(picoEncoderPinB);
+    // Read the current state of the encoder's two digital pins
+    a = gpio_get(picoEncoderPinA);
+    b = gpio_get(picoEncoderPinB);
 
-  bool lastEncoded = 0;
-  // Update currentPattern based on the change in encoder value
-  if (lastEncoded != a && a == b)
-  {
-    // Clockwise rotation
-    encoderValue++;
-    currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
-    updateDisplayName = true;
+    // Update currentPattern based on the change in encoder value
+    if (lastEncoded != a && a == b)
+    {
+      // Clockwise rotation
+      encoderValue++;
+      currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
+      updateDisplayName = true;
+    }
+    else if (lastEncoded != a && a != b)
+    {
+      // Counter-clockwise rotation
+      encoderValue--;
+      currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
+      updateDisplayName = true;
+    }
+    lastEncoded = a;
+
+    // EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
+    ISR_loop = true; // Restart the loop
   }
-  else if (lastEncoded != a && a != b)
-  {
-    // Counter-clockwise rotation
-    encoderValue--;
-    currentPattern = static_cast<WheelType>((currentPattern + 1) % (MAX_WHEELS));
-    updateDisplayName = true;
-  }
-  lastEncoded = a;
 
-  // EEPROM.put(0, currentPattern); // Store currentPattern to EEPROM
-  ISR_loop = true; // Restart the loop
-}
 
 // Holds various instructions needed each time the pattern is changed
 void patternCheck()
@@ -113,12 +101,9 @@ void patternCheck()
 void initBoard()
 {
   adc_init();
-  adc_select_input(rpmPot);
-
-  // stdio_init_all();
+  adc_select_input(picoRpmPot);
 
   // Initialize Pins for rotary encoder
-  // Set pins as inputs with pull-ups
   _gpio_init(picoEncoderPinA);
   gpio_set_dir(picoEncoderPinA, GPIO_IN);
   gpio_pull_up(picoEncoderPinA);
@@ -130,12 +115,12 @@ void initBoard()
   gpio_set_irq_enabled_with_callback(picoEncoderPinB, GPIO_IRQ_EDGE_FALL, true, (gpio_irq_callback_t)encoder);
 
   // Check if the loaded value is within the range.
-  // if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
-  //{
-  // currentPattern = 42; // Audi
-  // currentPattern = 11; // 12-1
-  // currentPattern = 7; // 24-1
-  //}
+  if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
+  {
+    // currentPattern = 42; // Audi
+    currentPattern = 11; // 12-1
+    // currentPattern = 7; // 24-1
+  }
 }
 
 void adc()
@@ -164,8 +149,8 @@ void output()
     if (currentTime - lastUpdateTime >= triggerDelay)
     {
       int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
-      digitalWrite(crankPin, pinValue & 0x01);
-      digitalWrite(camPin, (pinValue >> 1) & 0x01);
+      digitalWrite(picoCrankPin, pinValue & 0x01);
+      digitalWrite(picoCamPin, (pinValue >> 1) & 0x01);
 
       if (++currentIndex == Wheels[currentPattern].patternLength)
       {                   // walk the pattern
