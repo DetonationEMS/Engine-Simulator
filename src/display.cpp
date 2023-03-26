@@ -5,29 +5,24 @@
 // Doesn't work properly. Need to learn to use esp32 timers
 #if defined(ESP32)
 #include "board_esp32.h"
-#include <Tiny4kOLED.h>
-#include <fonts.h>
 #endif
 
 // Works well
 #if defined(AVR328)
 #include "board_avr328.h"
-#include <Tiny4kOLED.h>
-#include <fonts.h>
 #endif
 
 // Works well
 #if defined(PICO)
 #include "board_pico.h"
-#include <Tiny4kOLED.h>
-
 #endif
 
 #if defined(USE_TINY4K)
-
+#include <Tiny4kOLED.h>
+#include <fonts.h>
 // Ardustim Variables
 extern wheels Wheels[];
-extern uint8_t currentPattern;   // Store Currently selected pattern. Stored in EEPROM.
+extern uint8_t currentPattern; // Store Currently selected pattern. Stored in EEPROM.
 
 void loadDisplay()
 {
@@ -67,19 +62,34 @@ void updateDisplay()
 #endif
 
 #if defined(ADAFRUIT_GFX)
-void loadDisplay()
-{
+#include <hardware/spi.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#define OLED_ADDR 0x3C // I2C address of OLED display
 
-    Adafruit_SSD1306 display(128, 64, &Wire, OLED_ADDR);
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
 
-    Wire.begin();                                   // Initialize I2C communication
-    display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR); // Initialize OLED display
+Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
+// Ardustim Variables
+extern wheels Wheels[];
+extern uint8_t currentPattern; // Store Currently selected pattern. Stored in EEPROM.
+
+void loadDisplay()
+{
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Pattern: ");
+    display.print(currentPattern + 1); // Add one to exclude 0 from pattern count
+    display.print("/");
+    display.print(MAX_WHEELS);
+    display.setCursor(0, 10);
+    display.display();
 }
-void drawScreen()
+void updateDisplay()
 {
     char buf[80];
 

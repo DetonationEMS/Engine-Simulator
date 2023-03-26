@@ -89,7 +89,7 @@ void patternCheck()
   if (updateDisplayName == true) // Called if new pattern needs to be displayed.
   {
     updateDisplayName = false;
-    // updateDisplay(); // Calls function that updates display to new pattern
+    updateDisplay(); // Calls function that updates display to new pattern
   }
 
   // Adds delay when triggerOutput changes from false to true. (Needed to prevent display and/or output from locking up)
@@ -135,7 +135,7 @@ void initBoard()
     // currentPattern = 7; // 24-1
   }
 
-  // loadDisplay();
+  loadDisplay();
 }
 
 void adc()
