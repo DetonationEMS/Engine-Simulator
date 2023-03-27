@@ -36,12 +36,20 @@ bool ISR_loop = 1;          // Flag that delays output restart
 bool triggerOutput = true;  // Store value used for output interrupt
 float triggerDelay;         // Store delay maths
 uint16_t prescaler;
+float scaledRPM;
+volatile unsigned long pulseDuration = 0;
+volatile bool outputState = LOW;
+unsigned long previousMillis = 0;
+volatile unsigned long lastPulseDuration = 0;
+
 // Rotary Encoder
 uint8_t lastEncoded = 0;
 uint16_t encoderValue = 0;
+
 // Variables for analog input and RPM control
 uint16_t potValue;
 uint16_t desiredRPM = 0; // Define a variable to store the desired RPM value
+
 // Pattern selection
 extern wheels Wheels[];
 uint8_t currentPattern = 11;   // Store Currently selected pattern. Stored in EEPROM.
@@ -55,8 +63,6 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 // Define the timer interrupt service routine
 void IRAM_ATTR onTimer()
 {
-  portENTER_CRITICAL_ISR(&timerMux);
-
   if (triggerOutput == true)
   {
     int pinValue = pgm_read_byte(&Wheels[currentPattern].selectedPattern[currentIndex]);
@@ -64,11 +70,10 @@ void IRAM_ATTR onTimer()
     digitalWrite(ESP32camPin, (pinValue >> 1) & 0x01);
 
     if (++currentIndex == Wheels[currentPattern].patternLength)
-    {                   // walk the pattern
-      currentIndex = 0; // when the end of the pattern is reached go back to the start.
+    {
+      currentIndex = 0;
     }
   }
-  portEXIT_CRITICAL_ISR(&timerMux);
 }
 
 void encoder()
@@ -141,30 +146,24 @@ void patternCheck()
 // Define a function to initialize board hardware
 void initBoard()
 {
-  // initialize EEPROM
-  // EEPROM.begin(EEPROM_SIZE);
-
-  // Configure timer
-  prescaler = 16; // Initiate sane value.
-
-  timer = timerBegin(0, prescaler, true); // 16 prescaler for 5MHz
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 1000, true); // Set initial alarm value
-  timerAlarmEnable(timer);
+  // Initialize and configure the hardware timer
+  timer = timerBegin(0, 80, true);          // Timer 0, 80 divider (1MHz), count-up
+  timerAttachInterrupt(timer, &onTimer, true);     // Attach onTimer() function as interrupt
+  timerAlarmWrite(timer, pulseDuration / 2, true); // Set initial alarm value and auto-reload
+  timerAlarmEnable(timer);                         // Enable the timer alarm
 
   // Configure pin modes for inputs and outputs
   pinMode(ESP32crankPin, OUTPUT); // set crankPin as an output
   pinMode(ESP32camPin, OUTPUT);   // set camPin as an output
 
   pinMode(ESP32rpmPot, INPUT); // set potentiometer as an input
+  analogReadResolution(10);
+
   pinMode(ESP32encoderPinA, INPUT_PULLUP);
   pinMode(ESP32encoderPinB, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(ESP32encoderPinA), encoder, CHANGE); // Interrupts for rotary encoder
   attachInterrupt(digitalPinToInterrupt(ESP32encoderPinB), encoder, CHANGE); // Interrupts for rotary encoder
-
-  // COMMENTED OUT FOR DEBUG
-  // EEPROM.get(0, currentPattern); // Get previously stored pattern
 
   // Check if the loaded value is within the range.
   if (currentPattern < minWheels || currentPattern > MAX_WHEELS)
@@ -173,38 +172,29 @@ void initBoard()
   }
 }
 
-float calculateScaledRPM(int arrayLength)
-{
-  int minLength = 4;
-  int maxLength = 1440;
-  int rpmRange = maxRPM - minRPM;
-
-  float normalizedLength = static_cast<float>(arrayLength - minLength) / (maxLength - minLength);
-  float scaledRPM = normalizedLength * rpmRange + minRPM;
-
-  return scaledRPM;
-}
-
 void adc()
 {
-  potValue = analogRead(ESP32rpmPot); // this read working
+  unsigned long currentMillis = micros();
+  if (currentMillis - previousMillis >= 10)
+  {
+    previousMillis = currentMillis;
 
-  // Normalize the potentiometer value to a range between 0 and 1000
-  int normalizedPotValue = (potValue * 4095) / 4095;
+    potValue = analogRead(ESP32rpmPot);
+    // Map the potentiometer value directly to the RPM range
+    scaledRPM = map(potValue, 0, 1023, minRPM, maxRPM);
+    pulseDuration = 60 * 1000000 / scaledRPM;
 
-  int desiredRPM = minRPM + (((maxRPM - minRPM) * normalizedPotValue) / 4096);
-
-  // Access the specific pattern stored in Wheels using currentPattern as an index
-  double scaler = Wheels[currentPattern].rpm_scaler * ((Wheels[currentPattern].wheel_degrees / 360.0));
-
-  triggerDelay = 600000.0 / ((double)desiredRPM * scaler);
-  timerAlarmWrite(timer, triggerDelay, true); // Set timerAlarWrite to new_OCR1A for RPM changes
+    // Check if pulseDuration has changed, and update the timer alarm value if necessary
+    if (pulseDuration != lastPulseDuration)
+    {
+      timerAlarmWrite(timer, pulseDuration / 2, true);
+      lastPulseDuration = pulseDuration;
+    }
+  }
 }
 
 void output()
 {
-  // pre-scaler testing
-  // Set the timer prescaler to the mapped value
-  timerSetDivider(0, Wheels[currentPattern].patternLength);
+  // Not used at this time
 }
 #endif
